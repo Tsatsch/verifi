@@ -1,21 +1,24 @@
-"use server"
-
 import FastSpeedtest from "fast-speedtest-api"
 
-// Token extracted from public sources / fast.com network tab
-// This token is required for the API to work
-const FAST_COM_TOKEN = "YXNkZmFzZGxmbnNkYWZoYXNkZmhrYWxm"
+// Token for fast.com API - loaded from environment variable
+const FAST_COM_TOKEN = process.env.NEXT_PUBLIC_FAST_COM_TOKEN
 
 /**
  * Measure connection speed using fast-speedtest-api.
+ * This runs CLIENT-SIDE in the user's browser, measuring their actual network.
+ * 
  * @param durationSeconds optional desired measurement duration in seconds. Larger values increase the number of fetches and timeout.
  *                         The value is translated into `urlCount` (more requests) and `timeout` (ms).
  *                         Defaults to ~5 seconds of measurement.
  */
 export async function measureConnectionSpeed(
   durationSeconds = 5,
-): Promise<{ speed: number; unit: string } | { error: string }> {
+): Promise<{ speed: number; unit: string; samples: number[] } | { error: string }> {
   try {
+    if (!FAST_COM_TOKEN) {
+      throw new Error("NEXT_PUBLIC_FAST_COM_TOKEN environment variable is not set")
+    }
+
     // Strategy: perform several quick samples and average them so the returned
     // value is an average over the requested duration rather than a single last sample.
     // Determine number of samples (cap to avoid too many slow sequential calls).
@@ -33,7 +36,7 @@ export async function measureConnectionSpeed(
       unit: FastSpeedtest.UNITS.Mbps,
     })
 
-    console.log("Starting averaged speedtest", { durationSeconds, samples })
+    console.log("Starting averaged speedtest (CLIENT-SIDE)", { durationSeconds, samples })
 
     const results: number[] = []
     for (let i = 0; i < samples; i++) {
@@ -59,7 +62,7 @@ export async function measureConnectionSpeed(
     }
 
     const avg = results.reduce((a, b) => a + b, 0) / results.length
-    return { speed: Math.round(avg), unit: "Mbps", samples: results } as any
+    return { speed: Math.round(avg), unit: "Mbps", samples: results }
   } catch (error: any) {
     console.error("Speed test failed:", error)
     return { error: error?.message || "Failed to measure speed" }

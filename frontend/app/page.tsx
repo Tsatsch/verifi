@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { measureConnectionSpeed } from "@/app/actions"
+import { measureConnectionSpeed } from "@/lib/speed-test"
 import { useToast } from "@/hooks/use-toast"
 import { GoogleMapsProvider } from "@/components/google-maps-provider"
 import { MapView } from "@/components/map-view"
