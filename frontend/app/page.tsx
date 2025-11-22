@@ -1,6 +1,8 @@
 "use client"
 
 import { useState } from "react"
+import { measureConnectionSpeed } from "@/app/actions"
+import { useToast } from "@/hooks/use-toast"
 import { GoogleMapsProvider } from "@/components/google-maps-provider"
 import { MapView } from "@/components/map-view"
 import { TopNav } from "@/components/top-nav"
@@ -14,17 +16,42 @@ export default function Page() {
   const [isScanning, setIsScanning] = useState(false)
   const [scanResult, setScanResult] = useState<any>(null)
 
-  const handleScan = () => {
+  const { toast } = useToast()
+
+  const handleScan = async () => {
     setIsScanning(true)
-    // Simulate scanning process
-    setTimeout(() => {
-      setIsScanning(false)
+    try {
+      const result = await measureConnectionSpeed()
+      
+      if ('error' in result) {
+        toast({
+          title: "Speed test failed",
+          description: result.error as string,
+          variant: "destructive",
+        })
+        return
+      }
+
       setScanResult({
-        ssid: "CoffeeShop_5G",
-        speed: Math.floor(Math.random() * 200) + 50,
+        ssid: "Detected Network",
+        speed: result.speed,
         reward: 50,
       })
-    }, 3000)
+
+      toast({
+        title: "Scan Complete",
+        description: `Measured speed: ${result.speed} ${result.unit}`,
+      })
+    } catch (error) {
+      console.error(error)
+      toast({
+        title: "Error",
+        description: "Failed to run speed test",
+        variant: "destructive",
+      })
+    } finally {
+      setIsScanning(false)
+    }
   }
 
   return (
