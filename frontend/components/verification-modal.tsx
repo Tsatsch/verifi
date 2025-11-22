@@ -3,7 +3,8 @@
 import { Check, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState, useRef, useEffect } from "react"
-import { usePrivy } from "@privy-io/react-auth"
+import { usePrivy, useWallets } from "@privy-io/react-auth"
+import { useToast } from "@/components/ui/use-toast"
 
 interface VerificationModalProps {
   result: any
@@ -12,10 +13,32 @@ interface VerificationModalProps {
 
 export function VerificationModal({ result, onClose }: VerificationModalProps) {
   const { authenticated, login } = usePrivy()
+  const { wallets } = useWallets()
+  const { toast } = useToast()
   const [phase, setPhase] = useState<"speedometer" | "mint">("speedometer")
   const [speed, setSpeed] = useState(0)
   const [isConnecting, setIsConnecting] = useState(false)
   const loginInProgress = useRef(false)
+
+  const embeddedWallet = wallets.find((wallet) => wallet.walletClientType === "privy")
+  const connectedWallet = wallets.find((wallet) => wallet.address)
+  const activeWallet = embeddedWallet || connectedWallet
+  const chainId = activeWallet?.chainId ||
+                  (activeWallet as any)?.chain?.id ||
+                  (activeWallet as any)?.chainId ||
+                  undefined
+
+  const getChainIdNumber = (chainId: string | number | undefined): number | null => {
+    if (!chainId) return null
+
+    if (typeof chainId === "string") {
+      return chainId.startsWith("0x")
+        ? parseInt(chainId, 16)
+        : parseInt(chainId, 10)
+    }
+
+    return chainId
+  }
 
   // Animate speed counter
   useEffect(() => {
@@ -54,6 +77,21 @@ export function VerificationModal({ result, onClose }: VerificationModalProps) {
         setIsConnecting(false)
       }, 1000)
     }
+  }
+
+  const handleSignAndPublish = () => {
+    const chainIdNum = getChainIdNumber(chainId)
+
+    if (!chainIdNum || chainIdNum !== 8453) {
+      toast({
+        title: "Switch to Base network",
+        description: "Please switch your wallet to the Base network before publishing this signal.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    onClose()
   }
 
   return (
@@ -120,14 +158,17 @@ export function VerificationModal({ result, onClose }: VerificationModalProps) {
             </div>
 
             {authenticated ? (
-              <Button onClick={onClose} className="w-full rounded-full bg-cyber-cyan text-void hover:bg-cyber-cyan/90">
+              <Button
+                onClick={handleSignAndPublish}
+                className="w-full rounded-full bg-cyber-cyan text-void hover:bg-cyber-cyan/90"
+              >
                 Sign & Publish
               </Button>
             ) : (
               <div>
                 <p className="mb-4 text-sm text-foreground/60">Connect your wallet to earn rewards</p>
-                <Button 
-                  onClick={handleLogin} 
+                <Button
+                  onClick={handleLogin}
                   className="w-full rounded-full bg-cyber-cyan text-void hover:bg-cyber-cyan/90"
                   disabled={isConnecting}
                 >

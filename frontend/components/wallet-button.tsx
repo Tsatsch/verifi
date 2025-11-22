@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Wallet, LogOut, Copy, ExternalLink, Check } from "lucide-react"
+import { Wallet, LogOut, Copy, Check } from "lucide-react"
 import { useState, useRef } from "react"
 import { useToast } from "@/components/ui/use-toast"
 
@@ -22,9 +22,64 @@ export function WalletButton() {
   const loginInProgress = useRef(false)
   const { toast } = useToast()
 
-  // Get the embedded wallet
+  // Get the first available wallet address (embedded or external)
+  // Priority: embedded wallet first, then any connected wallet
   const embeddedWallet = wallets.find((wallet) => wallet.walletClientType === "privy")
-  const address = embeddedWallet?.address
+  const connectedWallet = wallets.find((wallet) => wallet.address)
+  const activeWallet = embeddedWallet || connectedWallet
+  const address = activeWallet?.address
+
+  // Get the current chain ID from the active wallet
+  // Privy wallets may store chainId in different formats
+  const chainId = activeWallet?.chainId ||
+                  (activeWallet as any)?.chain?.id ||
+                  (activeWallet as any)?.chainId ||
+                  undefined
+
+  // Helper to convert chainId to number
+  const getChainIdNumber = (chainId: string | number | undefined): number | null => {
+    if (!chainId) return null
+
+    if (typeof chainId === "string") {
+      // Handle hex strings (0x1, 0x2105, etc.) and decimal strings
+      return chainId.startsWith("0x")
+        ? parseInt(chainId, 16)
+        : parseInt(chainId, 10)
+    }
+
+    return chainId
+  }
+
+  // Get chain name from chain ID
+  const getChainName = (chainId: string | number | undefined): string => {
+    const chainIdNum = getChainIdNumber(chainId)
+    
+    if (!chainIdNum) {
+      // Default to Base if chain ID is not available
+      return "Base"
+    }
+    
+    switch (chainIdNum) {
+      case 1:
+        return "Ethereum"
+      case 8453:
+        return "Base"
+      case 137:
+        return "Polygon"
+      default:
+        // If chain is not recognized, show the chain ID number instead of "Unknown"
+        return `Chain ${chainIdNum}`
+    }
+  }
+
+  // Debug logging (remove in production)
+  if (process.env.NODE_ENV === "development" && authenticated) {
+    console.log("[WalletButton] Wallets:", wallets)
+    console.log("[WalletButton] Active wallet:", activeWallet)
+    console.log("[WalletButton] Active wallet full object:", JSON.stringify(activeWallet, null, 2))
+    console.log("[WalletButton] Chain ID:", chainId, typeof chainId)
+    console.log("[WalletButton] Address:", address)
+  }
 
   const handleCopyAddress = async () => {
     if (address) {
@@ -35,13 +90,6 @@ export function WalletButton() {
         description: "Wallet address copied to clipboard",
       })
       setTimeout(() => setCopiedAddress(false), 2000)
-    }
-  }
-
-  const handleViewOnExplorer = () => {
-    if (address) {
-      // Base Mainnet explorer
-      window.open(`https://basescan.org/address/${address}`, "_blank")
     }
   }
 
@@ -104,22 +152,37 @@ export function WalletButton() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
-          <Wallet className="h-4 w-4" />
-          {address ? formatAddress(address) : "Wallet"}
+        <Button variant="outline" size="sm" className="gap-2 font-mono relative z-50">
+          <Wallet className="h-4 w-4 shrink-0" />
+          <span className="hidden sm:inline">
+            {address ? formatAddress(address) : "Wallet"}
+          </span>
+          <span className="sm:hidden">
+            {address ? `${address.slice(0, 4)}...${address.slice(-2)}` : "Wallet"}
+          </span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuLabel>
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium">My Wallet</p>
+            {address && (
+              <p className="text-xs text-muted-foreground font-mono break-all">
+                {address}
+              </p>
+            )}
+            {chainId && (
+              <p className="text-xs text-muted-foreground">
+                Network: {getChainName(chainId)}
+              </p>
+            )}
             {user?.email?.address && (
-              <p className="text-xs text-muted-foreground">{user.email.address}</p>
+              <p className="text-xs text-muted-foreground mt-1">{user.email.address}</p>
             )}
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        
+
         {address && (
           <>
             <DropdownMenuItem onClick={handleCopyAddress}>
@@ -132,16 +195,11 @@ export function WalletButton() {
                 {copiedAddress ? "Copied!" : "Copy Address"}
               </span>
             </DropdownMenuItem>
-            
-            <DropdownMenuItem onClick={handleViewOnExplorer}>
-              <ExternalLink className="mr-2 h-4 w-4" />
-              <span className="flex-1">View on Explorer</span>
-            </DropdownMenuItem>
-            
+
             <DropdownMenuSeparator />
           </>
         )}
-        
+
         <DropdownMenuItem onClick={logout} className="text-destructive">
           <LogOut className="mr-2 h-4 w-4" />
           <span className="flex-1">Disconnect</span>

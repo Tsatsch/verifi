@@ -1,24 +1,17 @@
 "use client"
 
 import type React from "react"
+import { useMemo } from "react"
 import { PrivyProvider as PrivyProviderBase } from "@privy-io/react-auth"
+import type { PrivyClientConfig } from "@privy-io/react-auth"
+import { PrivyWarningSuppressor } from "./privy-warning-suppressor"
 
 export function PrivyProvider({ children }: { children: React.ReactNode }) {
   const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID
 
-  if (!appId) {
-    console.error(
-      "NEXT_PUBLIC_PRIVY_APP_ID is not set. Please add it to your .env.local file."
-    )
-    return <>{children}</>
-  }
-
-  return (
-    <PrivyProviderBase
-      appId={appId}
-      config={{
-        // Customize the login methods you want to support
-        loginMethods: ["email", "wallet", "google", "twitter"],
+  const config = useMemo<PrivyClientConfig>(() => ({
+    // Wallet-only authentication
+    loginMethods: ["wallet"],
         
         // Appearance configuration
         appearance: {
@@ -26,12 +19,16 @@ export function PrivyProvider({ children }: { children: React.ReactNode }) {
           accentColor: "#10B981", // Emerald-500 to match Veri-Fi theme
           logo: "/icon.svg",
           showWalletLoginFirst: true,
+      // Coinbase Smart Wallet as priority #1 (browser-based, no mobile app needed)
+      walletList: ["coinbase_wallet", "metamask", "rainbow"],
         },
         
-        // Embedded wallet configuration
+    // Embedded wallet configuration - Privy creates wallets automatically
         embeddedWallets: {
+      ethereum: {
           createOnLogin: "users-without-wallets",
-          requireUserPasswordOnCreate: false,
+      },
+      showWalletUIs: true,
         },
         
         // Supported chains - configure based on your needs
@@ -126,10 +123,24 @@ export function PrivyProvider({ children }: { children: React.ReactNode }) {
             },
           },
         },
-      }}
-    >
+  }), [])
+
+  if (!appId) {
+    console.warn(
+      "[Privy] NEXT_PUBLIC_PRIVY_APP_ID is not set. Please add it to your .env.local file.",
+      "\nGet your App ID from: https://dashboard.privy.io"
+    )
+    // Return children without Privy provider if no app ID
+    return <>{children}</>
+  }
+
+  return (
+    <>
+      <PrivyWarningSuppressor />
+      <PrivyProviderBase appId={appId} config={config}>
       {children}
     </PrivyProviderBase>
+    </>
   )
 }
 
