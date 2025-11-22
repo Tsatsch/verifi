@@ -2,20 +2,23 @@
 
 import { Check, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
+import { usePrivy } from "@privy-io/react-auth"
 
 interface VerificationModalProps {
   result: any
   onClose: () => void
-  walletConnected: boolean
 }
 
-export function VerificationModal({ result, onClose, walletConnected }: VerificationModalProps) {
+export function VerificationModal({ result, onClose }: VerificationModalProps) {
+  const { authenticated, login } = usePrivy()
   const [phase, setPhase] = useState<"speedometer" | "mint">("speedometer")
   const [speed, setSpeed] = useState(0)
+  const [isConnecting, setIsConnecting] = useState(false)
+  const loginInProgress = useRef(false)
 
   // Animate speed counter
-  useState(() => {
+  useEffect(() => {
     if (phase === "speedometer") {
       let current = 0
       const interval = setInterval(() => {
@@ -30,7 +33,28 @@ export function VerificationModal({ result, onClose, walletConnected }: Verifica
       }, 30)
       return () => clearInterval(interval)
     }
-  })
+  }, [phase, result.speed])
+
+  const handleLogin = async () => {
+    // Prevent multiple simultaneous login attempts
+    if (loginInProgress.current || isConnecting) {
+      return
+    }
+
+    try {
+      loginInProgress.current = true
+      setIsConnecting(true)
+      await login()
+    } catch (error) {
+      console.error("Login error:", error)
+    } finally {
+      // Reset after a delay to allow Privy to process
+      setTimeout(() => {
+        loginInProgress.current = false
+        setIsConnecting(false)
+      }, 1000)
+    }
+  }
 
   return (
     <>
@@ -95,15 +119,19 @@ export function VerificationModal({ result, onClose, walletConnected }: Verifica
               <span className="font-jetbrains text-3xl font-bold text-cyber-cyan">+{result.reward} VERI</span>
             </div>
 
-            {walletConnected ? (
+            {authenticated ? (
               <Button onClick={onClose} className="w-full rounded-full bg-cyber-cyan text-void hover:bg-cyber-cyan/90">
                 Sign & Publish
               </Button>
             ) : (
               <div>
                 <p className="mb-4 text-sm text-foreground/60">Connect your wallet to earn rewards</p>
-                <Button onClick={onClose} variant="outline" className="w-full rounded-full bg-transparent">
-                  Close
+                <Button 
+                  onClick={handleLogin} 
+                  className="w-full rounded-full bg-cyber-cyan text-void hover:bg-cyber-cyan/90"
+                  disabled={isConnecting}
+                >
+                  {isConnecting ? "Connecting..." : "Connect Wallet"}
                 </Button>
               </div>
             )}
