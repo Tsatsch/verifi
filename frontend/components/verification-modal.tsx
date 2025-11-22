@@ -2,20 +2,21 @@
 
 import { Check, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { usePrivy } from "@privy-io/react-auth"
 
 interface VerificationModalProps {
   result: any
   onClose: () => void
-  walletConnected: boolean
 }
 
-export function VerificationModal({ result, onClose, walletConnected }: VerificationModalProps) {
+export function VerificationModal({ result, onClose }: VerificationModalProps) {
+  const { authenticated, login } = usePrivy()
   const [phase, setPhase] = useState<"speedometer" | "mint">("speedometer")
   const [speed, setSpeed] = useState(0)
 
   // Animate speed counter
-  useState(() => {
+  useEffect(() => {
     if (phase === "speedometer") {
       let current = 0
       const interval = setInterval(() => {
@@ -30,7 +31,7 @@ export function VerificationModal({ result, onClose, walletConnected }: Verifica
       }, 30)
       return () => clearInterval(interval)
     }
-  })
+  }, [phase, result.speed])
 
   return (
     <>
@@ -95,13 +96,16 @@ export function VerificationModal({ result, onClose, walletConnected }: Verifica
               <span className="font-jetbrains text-3xl font-bold text-cyber-cyan">+{result.reward} VERI</span>
             </div>
 
-            {walletConnected ? (
+            {authenticated ? (
               <Button onClick={onClose} className="w-full rounded-full bg-cyber-cyan text-void hover:bg-cyber-cyan/90">
                 Sign & Publish
               </Button>
             ) : (
-              <div>
-                <p className="mb-4 text-sm text-foreground/60">Connect your wallet to earn rewards</p>
+              <div className="space-y-3">
+                <p className="text-sm text-foreground/60">Connect your wallet to earn rewards</p>
+                <Button onClick={login} className="w-full rounded-full bg-cyber-cyan text-void hover:bg-cyber-cyan/90">
+                  Connect Wallet
+                </Button>
                 <Button onClick={onClose} variant="outline" className="w-full rounded-full bg-transparent">
                   Close
                 </Button>

@@ -2,13 +2,15 @@
 
 import { Wifi } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { usePrivy } from "@privy-io/react-auth"
 
-interface TopNavProps {
-  walletConnected: boolean
-  onWalletToggle: () => void
-}
+export function TopNav() {
+  const { login, logout, authenticated, user } = usePrivy()
 
-export function TopNav({ walletConnected, onWalletToggle }: TopNavProps) {
+  const formatAddress = (address: string) => {
+    return `${address.slice(0, 4)}...${address.slice(-4)}`
+  }
+
   return (
     <div className="absolute left-0 right-0 top-0 z-40 p-4 md:p-6">
       <div className="flex items-center justify-between">
@@ -21,17 +23,19 @@ export function TopNav({ walletConnected, onWalletToggle }: TopNavProps) {
         </div>
 
         {/* Wallet Connect */}
-        {walletConnected ? (
+        {authenticated && user?.wallet ? (
           <button
-            onClick={onWalletToggle}
+            onClick={logout}
             className="flex items-center gap-2 rounded-full bg-glass px-4 py-2 backdrop-blur-xl transition-all hover:bg-glass/80"
           >
             <div className="h-6 w-6 rounded-full bg-gradient-to-br from-cyber-cyan to-signal-green" />
-            <span className="font-jetbrains text-sm text-foreground">...4B2A</span>
+            <span className="font-jetbrains text-sm text-foreground">
+              {formatAddress(user.wallet.address)}
+            </span>
           </button>
         ) : (
           <Button
-            onClick={onWalletToggle}
+            onClick={login}
             className="rounded-full border border-cyber-cyan/50 bg-glass backdrop-blur-xl hover:bg-cyber-cyan/20"
           >
             Sync Wallet
