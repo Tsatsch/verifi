@@ -1,6 +1,6 @@
 "use client"
 
-import { Check, Zap } from "lucide-react"
+import { Check, Zap, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState, useEffect } from "react"
 import { SignInModal } from "@coinbase/cdp-react"
@@ -73,7 +73,15 @@ export function VerificationModal({ result, onClose }: VerificationModalProps) {
       {/* Modal */}
       <div className="fixed left-1/2 top-1/2 z-50 w-[90%] max-w-md -translate-x-1/2 -translate-y-1/2 animate-scale-in">
         {phase === "speedometer" ? (
-          <div className="rounded-2xl bg-glass p-8 text-center backdrop-blur-xl">
+          <div className="relative rounded-2xl bg-glass p-8 text-center backdrop-blur-xl">
+            {/* Close button while measuring */}
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="absolute right-4 top-4 rounded-full p-1 text-foreground/60 hover:text-foreground"
+            >
+              <X className="h-5 w-5" />
+            </button>
             <div className="mb-4 text-sm text-foreground/60">Analyzing Spectrum...</div>
 
             {/* Speedometer Gauge */}
@@ -114,7 +122,15 @@ export function VerificationModal({ result, onClose }: VerificationModalProps) {
             <div className="font-space-grotesk text-xl font-semibold text-foreground">{result.ssid}</div>
           </div>
         ) : (
-          <div className="rounded-2xl bg-glass p-8 text-center backdrop-blur-xl">
+          <div className="relative rounded-2xl bg-glass p-8 text-center backdrop-blur-xl">
+            {/* Close button on mint phase */}
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="absolute right-4 top-4 rounded-full p-1 text-foreground/60 hover:text-foreground"
+            >
+              <X className="h-5 w-5" />
+            </button>
             <div className="mb-6 flex justify-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-signal-green/20 animate-scale-in">
                 <Check className="h-8 w-8 text-signal-green" />
@@ -126,6 +142,14 @@ export function VerificationModal({ result, onClose }: VerificationModalProps) {
             <div className="mb-6 flex items-center justify-center gap-2">
               <Zap className="h-5 w-5 text-warning-amber" />
               <span className="font-jetbrains text-3xl font-bold text-cyber-cyan">+{result.reward} VERI</span>
+            </div>
+
+            {/* Show measured average value and sample count */}
+            <div className="mb-4 text-sm text-foreground/70">
+              Measured: <span className="font-jetbrains font-bold text-cyber-cyan">{result.speed}</span> Mbps
+              {result.samples ? (
+                <span className="ml-2 text-xs text-foreground/60">(avg over {result.samples.length} samples)</span>
+              ) : null}
             </div>
 
             {isConnected ? (
