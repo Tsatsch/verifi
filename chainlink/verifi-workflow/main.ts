@@ -1,5 +1,6 @@
 import { cre, Runner, type Runtime, type Task } from "@chainlink/cre-sdk";
-import { wifiSpeedSim } from "./tasks/wifi-speed-sim"; // import the task
+import { locate_ip } from "./tasks/locate_ip"; // import the task
+import { check_two_loc } from "./tasks/check_two_loc"; // import the location checker
 
 type Config = {
   schedule: string;
@@ -12,20 +13,34 @@ const testInput = {
   lon: 14.4378,
   download: 76.2,
   upload: 13.4,
-  timestamp: "2025-11-22T12:23:00Z"
+  timestamp: "2025-11-22T12:23:00Z",
+  ip: "8.8.8.8"
 };
 
 const onCronTrigger = async (runtime: Runtime<Config>): Promise<any> => {
-  runtime.log("Hello world! Workflow triggered.");
-
   try {
-    // Run the WiFi speed simulation task
-    const result = await wifiSpeedSim(testInput as any);
-    runtime.log("WiFi speed simulation result:", JSON.stringify(result, null, 2));
+    // Get location from IP
+    const ipLocation = locate_ip(runtime, testInput as any);
+    runtime.log(`IP location result: ${JSON.stringify(ipLocation, null, 2)}`);
 
-    return result;
+    // Check if the two locations are within 10km of each other
+    const locationCheckInput = {
+      lat1: testInput.lat,
+      lon1: testInput.lon,
+      lat2: ipLocation.lat,
+      lon2: ipLocation.lon
+    };
+    
+    const isLocationValid = check_two_loc(runtime, locationCheckInput);
+    runtime.log(`Location validation result: ${isLocationValid}`);
+
+    return {
+      ipLocation,
+      originalLocation: { lat: testInput.lat, lon: testInput.lon },
+      isLocationValid
+    };
   } catch (err) {
-    runtime.log("Error running WiFi speed simulation:", err);
+    runtime.log(`Error in workflow: ${err}`);
     throw err;
   }
 };
@@ -36,7 +51,7 @@ const initWorkflow = (config: Config) => {
   return [
     cre.handler(
       cron.trigger(
-        { schedule: config.schedule } // e.g., "* * * * *" for every minute
+        { schedule: config.schedule } 
       ),
       onCronTrigger
     ),
