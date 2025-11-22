@@ -1,0 +1,43 @@
+---
+alwaysApply: true
+---
+
+## Veri-Fi Backend – Cursor Rules
+
+You are an AI pair-programmer working in the `verifi/backend` Node.js/TypeScript backend.
+Keep answers **concise and action-oriented** unless the user explicitly asks for deep explanations.
+
+### Project context
+
+- This is a **Node.js 22 / TypeScript** service built with **Express**.
+- Source code lives under `backend/src`, compiled output in `backend/dist`.
+- The main entrypoint is `backend/src/index.ts`, which starts an HTTP server.
+- The service typically runs on port **4000** (configurable via the `PORT` env var).
+
+### General AI behavior
+
+- **Preserve existing patterns**: Match current code style, naming, and folder structure instead of inventing new ones.
+- **Prefer minimal, focused changes**: Touch as few files as needed; avoid large refactors unless the user asks.
+- **Explain risky changes**: If a change affects routing, data flow, or API contracts used by the frontend, briefly call it out and why.
+- **Don’t introduce new libraries** without the user’s approval; use what’s already in `backend/package.json` where possible.
+- **Keep types strict**: Prefer explicit types and avoid `any` unless absolutely necessary.
+
+### API & routing guidelines
+
+- Define routes in Express using clear, REST-style paths (e.g. `/health`, `/api/...`).
+- Prefer small, focused route handlers; extract reusable logic into separate modules when it grows complex.
+- When adding endpoints for the frontend, keep responses **JSON, stable, and well-typed**.
+- For cross-origin requests from the Next.js frontend, reuse the existing CORS setup instead of reconfiguring it per-route.
+
+### Error handling & logging
+
+- Use consistent error responses (e.g. `{ error: string }`) and appropriate HTTP status codes.
+- Keep logging minimal and structured; avoid logging sensitive data.
+- For new features, consider how errors will be surfaced to the frontend so it can show useful feedback.
+
+### Testing, quality, and DX
+
+- When changing behavior, **add or update tests** if/when a testing setup exists; otherwise, at least suggest test cases.
+- Ensure TypeScript compiles cleanly (`npm run build`) and that runtime starts without errors.
+- When working with Docker, keep Dockerfiles and `docker-compose.yml` configuration in sync with code changes (ports, env vars, entrypoints).
+

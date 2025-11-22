@@ -1,0 +1,74 @@
+name: Deploy backend to Google Compute Engine
+
+on:
+  release:
+    types: [published]
+
+env:
+  BACKEND_PORT: 4000
+
+jobs:
+  build-and-deploy:
+    name: Build and deploy backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install and build backend (verification only)
+        working-directory: backend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Deploy to GCE VM via SSH (Docker)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.GCE_HOST }}
+          username: ${{ secrets.GCE_SSH_USER }}
+          key: ${{ secrets.GCE_SSH_KEY }}
+          script: |
+            set -e
+
+            REPO_DIR=/opt/verifi
+
+            # Ensure repo exists on VM
+            if [ ! -d "$REPO_DIR/.git" ]; then
+              sudo mkdir -p "$REPO_DIR"
+              sudo chown "$USER":"$USER" "$REPO_DIR"
+              git clone https://github.com/Tsatsch/verifi.git "$REPO_DIR"
+            fi
+
+            cd "$REPO_DIR"
+
+            # Pull latest main (or adjust to your default branch)
+            git fetch origin
+            git checkout main
+            git pull origin main
+
+            # Cleanup old stopped containers / dangling images to avoid disk bloat
+            docker container prune -f || true
+            docker image prune -f || true
+
+            # Build and restart backend Docker container
+            docker build -t verifi-backend:latest ./backend
+
+            docker stop verifi-backend || true
+            docker rm verifi-backend || true
+
+            docker run -d \
+              --name verifi-backend \
+              -p 80:${BACKEND_PORT} \
+              -e NODE_ENV=production \
+              --restart unless-stopped \
+              verifi-backend:latest
+
+
