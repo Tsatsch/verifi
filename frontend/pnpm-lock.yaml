@@ -119,6 +119,9 @@ importers:
       embla-carousel-react:
         specifier: 8.5.1
         version: 8.5.1(react@19.2.0)
+      fast-speedtest-api:
+        specifier: ^0.3.2
+        version: 0.3.2
       input-otp:
         specifier: 1.4.1
         version: 1.4.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -2935,6 +2938,11 @@ packages:
 
   fast-safe-stringify@2.1.1:
     resolution: {integrity: sha512-W+KJc2dmILlPplD/H4K9l9LcAHAfPtP6BY84uVLXQ6Evcz9Lcg33Y2z1IVblT6xdY54PXYVHEv+0Wpq8Io6zkA==}
+
+  fast-speedtest-api@0.3.2:
+    resolution: {integrity: sha512-QEfo3wytVo3x/ds4grti1nJUGZhmgdX9OpQbkXc6levJamjUFenb1SdbiVYhrTx27pvOAHSJOAXMu62K0dIEDQ==}
+    engines: {node: '>=7.10.1'}
+    hasBin: true
 
   fast-stable-stringify@1.0.0:
     resolution: {integrity: sha512-wpYMUmFu5f00Sm0cj2pfivpmawLZ0NKdviQ4w9zJeR8JVtOpOxHmLaJuj0vxvGqMJQWyP/COUkF75/57OKyRag==}
@@ -8903,6 +8911,8 @@ snapshots:
   fast-redact@3.5.0: {}
 
   fast-safe-stringify@2.1.1: {}
+
+  fast-speedtest-api@0.3.2: {}
 
   fast-stable-stringify@1.0.0: {}
 
