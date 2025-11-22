@@ -36,12 +36,15 @@ jobs:
         env:
           TAG_NAME: ${{ github.ref_name }}
           BACKEND_PORT: ${{ env.BACKEND_PORT }}
+          # Backend secrets from GitHub Secrets/Variables
+          # Format: newline-separated KEY=value pairs
+          BACKEND_ENV_VARS: ${{ secrets.BACKEND_ENV_VARS }}
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.GCE_HOST }}
           username: ${{ secrets.GCE_SSH_USER }}
           key: ${{ secrets.GCE_SSH_KEY }}
-          envs: TAG_NAME,BACKEND_PORT
+          envs: TAG_NAME,BACKEND_PORT,BACKEND_ENV_VARS
           script: |
             set -e
 
@@ -60,6 +63,14 @@ jobs:
             git fetch origin --tags
             git checkout "$TAG_NAME"
 
+            # Create .env file from GitHub Secrets (if provided)
+            # Format: BACKEND_ENV_VARS should be newline-separated KEY=value pairs
+            # Example: "PORT=4000\nDATABASE_URL=postgres://..."
+            if [ -n "$BACKEND_ENV_VARS" ]; then
+              echo -e "$BACKEND_ENV_VARS" > "$REPO_DIR/backend/.env"
+              chmod 600 "$REPO_DIR/backend/.env"
+            fi
+
             # Cleanup old stopped containers / dangling images to avoid disk bloat
             docker container prune -f || true
             docker image prune -f || true
@@ -70,11 +81,22 @@ jobs:
             docker stop verifi-backend || true
             docker rm verifi-backend || true
 
-            docker run -d \
-              --name verifi-backend \
-              -p 80:"${BACKEND_PORT}" \
-              -e NODE_ENV=production \
-              --restart unless-stopped \
-              verifi-backend:latest
+            # Run with env_file to load secrets (only if .env exists)
+            if [ -f "$REPO_DIR/backend/.env" ]; then
+              docker run -d \
+                --name verifi-backend \
+                -p 80:"${BACKEND_PORT}" \
+                --env-file "$REPO_DIR/backend/.env" \
+                -e NODE_ENV=production \
+                --restart unless-stopped \
+                verifi-backend:latest
+            else
+              docker run -d \
+                --name verifi-backend \
+                -p 80:"${BACKEND_PORT}" \
+                -e NODE_ENV=production \
+                --restart unless-stopped \
+                verifi-backend:latest
+            fi
 
 
