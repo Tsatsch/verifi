@@ -1,0 +1,26 @@
+type WifiSpot @entity(immutable: false) {
+  id: ID! # spotId (bytes32)
+  spotId: Bytes! # indexed spotId from event
+  submitter: Bytes! # address
+  ipfsCid: String! # IPFS CID
+  verificationScore: BigInt! # 0-100
+  lat: BigInt! # latitude from event
+  long: BigInt! # longitude from event
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+  
+  # IPFS data (fetched and stored)
+  ipfsData: IPFSData
+}
+
+type IPFSData @entity(immutable: true) {
+  id: ID! # same as WifiSpot.id
+  wifiName: String
+  speed: BigInt
+  location: String
+  timestamp: String
+  walletAddress: String
+  rawData: String # JSON string of full IPFS data
+}
+

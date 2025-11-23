@@ -14,6 +14,7 @@ import { WiFiFormModal, type WiFiFormData } from "@/components/wifi-form-modal"
 import { SidebarLeaderboard } from "@/components/sidebar-leaderboard"
 import { FilecoinPinProvider } from "@/context/filecoin-pin-provider"
 import { useFilecoinUpload } from "@/hooks/use-filecoin-upload"
+import { useWifiSpots } from "@/hooks/use-wifi-spots"
 import type { Measurement } from "@/types/measurement"
 
 function PageContent() {
@@ -21,7 +22,7 @@ function PageContent() {
   const [isScanning, setIsScanning] = useState(false)
   const [showWiFiForm, setShowWiFiForm] = useState(false)
   const [measurementData, setMeasurementData] = useState<{ speed: number } | null>(null)
-  const [measurements, setMeasurements] = useState<Measurement[]>([])
+  const [localMeasurements, setLocalMeasurements] = useState<Measurement[]>([])
   const { evmAddress } = useEvmAddress()
   const isWalletConnected = !!evmAddress
 
@@ -29,6 +30,14 @@ function PageContent() {
   const { coordinates } = useLocation()
   const { uploadState, uploadFile } = useFilecoinUpload()
   const hasShownUploadToast = useRef(false)
+
+  // Load WiFi spots from The Graph and IPFS
+  const { measurements: graphMeasurements, loading: loadingSpots, loadSpots } = useWifiSpots()
+
+  // Load spots on mount
+  useEffect(() => {
+    loadSpots()
+  }, [loadSpots])
 
   // Show toast when upload starts
   useEffect(() => {
@@ -121,8 +130,8 @@ function PageContent() {
       walletAddress: evmAddress,
     }
 
-    // Immediately add to map
-    setMeasurements((prev) => [...prev, measurement])
+    // Immediately add to map (local state for user's own measurements)
+    setLocalMeasurements((prev) => [...prev, measurement])
     
     toast({
       title: "Measurement added!",
@@ -164,7 +173,10 @@ function PageContent() {
     <GoogleMapsProvider>
       <div className="relative h-screen w-full overflow-hidden touch-pan-y">
         {/* Map Canvas - Full Screen (Lower layer) */}
-        <MapView onMarkerClick={setSelectedSignal} measurements={measurements} />
+        <MapView 
+          onMarkerClick={setSelectedSignal} 
+          measurements={[...graphMeasurements, ...localMeasurements]} 
+        />
 
         {/* UI Layer - Guaranteed to be above map */}
         <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 20 }}>

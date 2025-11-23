@@ -1,0 +1,28 @@
+specVersion: 0.0.5
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: WifiRegistry
+    network: base-sepolia
+    source:
+      address: "0x15405de75e94ce71ef3a19cde0b0ae784319217d"
+      abi: WifiRegistry
+      startBlock: 0 # Update with actual deployment block
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - WifiSpot
+        - IPFSData
+      abis:
+        - name: WifiRegistry
+          file: ./abis/WifiRegistry.json
+      eventHandlers:
+        - event: SpotSubmitted(indexed bytes32,indexed address,string)
+          handler: handleSpotSubmitted
+        - event: SpotVerified(indexed bytes32,indexed address,uint256,int256,int256)
+          handler: handleSpotVerified
+      file: ./src/mapping.ts
+
