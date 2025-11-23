@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Map, AdvancedMarker, useMap } from "@vis.gl/react-google-maps"
 import { useLocation } from "@/hooks/use-location"
+import type { Measurement } from "@/types/measurement"
 
 const mockSignals = [
   // Strong signals - Excellent WiFi spots
@@ -38,7 +39,7 @@ function WiFiMarker({
   signal: any
   onMarkerClick: (signal: any) => void
   isHovered: boolean
-  onHover: (id: number | null) => void
+  onHover: (id: string | number | null) => void
 }) {
   const getSignalColor = (strength: string) => {
     switch (strength) {
@@ -158,14 +159,36 @@ function MapRecenter({ lat, lng }: { lat: number; lng: number }) {
   return null
 }
 
-export function MapView({ onMarkerClick }: { onMarkerClick: (signal: any) => void }) {
-  const [hoveredId, setHoveredId] = useState<number | null>(null)
+export interface MapViewProps {
+  onMarkerClick: (signal: any) => void
+  measurements?: Measurement[]
+}
+
+export function MapView({ 
+  onMarkerClick,
+  measurements = [],
+}: MapViewProps) {
+  const [hoveredId, setHoveredId] = useState<string | number | null>(null)
   const [mapLoaded, setMapLoaded] = useState(false)
   const { coordinates, isLoading } = useLocation()
 
   // San Francisco center coordinates as fallback
   const defaultCenter = { lat: 37.7749, lng: -122.4194 }
   const center = coordinates || defaultCenter
+
+  // Combine mock signals with dynamic measurements
+  const allSignals = useMemo(() => {
+    const measurementSignals = measurements.map((m) => ({
+      id: m.id,
+      lat: m.lat,
+      lng: m.lng,
+      strength: m.strength,
+      ssid: m.ssid,
+      speed: m.speed,
+      verified: m.verified,
+    }))
+    return [...mockSignals, ...measurementSignals]
+  }, [measurements])
 
   return (
     <div className="absolute inset-0 bg-void" style={{ zIndex: 0, isolation: 'isolate' }}>
@@ -187,7 +210,7 @@ export function MapView({ onMarkerClick }: { onMarkerClick: (signal: any) => voi
         {coordinates && <MapRecenter lat={coordinates.lat} lng={coordinates.lng} />}
 
         {/* WiFi Signal Markers */}
-        {mockSignals.map((signal) => (
+        {allSignals.map((signal) => (
           <WiFiMarker
             key={signal.id}
             signal={signal}
