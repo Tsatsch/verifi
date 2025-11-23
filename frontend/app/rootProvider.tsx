@@ -8,7 +8,7 @@ const config: Config = {
     createOnLogin: "eoa", // Use EOA (Externally Owned Account) instead of smart wallet
   },
   appName: "Wifi-Radar",
-  appLogoUrl: `${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/logo_verifi-removebg.png`,
+  appLogoUrl: `${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/logo_verifcd i-removebg.png`,
   authMethods: ["email", "sms", "oauth:google", "oauth:apple"],
   // We render our own wallet button in the top nav, so hide the default Coinbase footer widget
   showCoinbaseFooter: false,

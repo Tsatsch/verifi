@@ -6,7 +6,7 @@ import { measureConnectionSpeed } from "@/lib/speed-test"
 import { useToast } from "@/hooks/use-toast"
 import { useLocation } from "@/hooks/use-location"
 import { GoogleMapsProvider } from "@/components/google-maps-provider"
-import { MapView } from "@/components/map-view"
+import { MapView, type MapViewHandle } from "@/components/map-view"
 import { TopNav } from "@/components/top-nav"
 import { BottomControls } from "@/components/bottom-controls"
 import { SignalCard } from "@/components/signal-card"
@@ -17,12 +17,16 @@ import { useFilecoinUpload } from "@/hooks/use-filecoin-upload"
 import { useWifiSpots } from "@/hooks/use-wifi-spots"
 import type { Measurement } from "@/types/measurement"
 
+type SignalFilter = 'all' | 'strong' | 'weak' | 'dead'
+
 function PageContent() {
   const [selectedSignal, setSelectedSignal] = useState<any>(null)
   const [isScanning, setIsScanning] = useState(false)
   const [showWiFiForm, setShowWiFiForm] = useState(false)
   const [measurementData, setMeasurementData] = useState<{ speed: number } | null>(null)
   const [localMeasurements, setLocalMeasurements] = useState<Measurement[]>([])
+  const [signalFilter, setSignalFilter] = useState<SignalFilter>('all')
+  const mapViewRef = useRef<MapViewHandle>(null)
   const { evmAddress } = useEvmAddress()
   const isWalletConnected = !!evmAddress
 
@@ -212,8 +216,10 @@ function PageContent() {
       <div className="relative h-screen w-full overflow-hidden touch-pan-y">
         {/* Map Canvas - Full Screen (Lower layer) */}
         <MapView 
+          ref={mapViewRef}
           onMarkerClick={setSelectedSignal} 
           measurements={allMeasurements}
+          signalFilter={signalFilter}
         />
 
         {/* Loading indicator for GraphQL data (subtle, non-blocking) */}
@@ -235,6 +241,11 @@ function PageContent() {
               onAddNew={handleAddNew}
               isScanning={isScanning}
               isWalletConnected={isWalletConnected}
+              signalFilter={signalFilter}
+              onSignalFilterChange={setSignalFilter}
+              onRecenter={() => {
+                mapViewRef.current?.recenter()
+              }}
             />
           </div>
 

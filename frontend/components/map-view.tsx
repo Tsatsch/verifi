@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useImperativeHandle, forwardRef, useRef } from "react"
 import { Map, AdvancedMarker, useMap } from "@vis.gl/react-google-maps"
 import { useLocation } from "@/hooks/use-location"
 import type { Measurement } from "@/types/measurement"
@@ -159,24 +159,66 @@ function MapRecenter({ lat, lng }: { lat: number; lng: number }) {
   return null
 }
 
+// Component to store map instance for recentering
+function MapInstanceStore({ 
+  onMapReady 
+}: { 
+  onMapReady?: (map: any) => void;
+}) {
+  const map = useMap()
+  
+  useEffect(() => {
+    if (map && onMapReady) {
+      onMapReady(map)
+    }
+  }, [map, onMapReady])
+  
+  return null
+}
+
+export interface MapViewHandle {
+  recenter: () => void
+}
+
 export interface MapViewProps {
   onMarkerClick: (signal: any) => void
   onMapClick?: (location: { lat: number; lng: number }) => void
   measurements?: Measurement[]
+  signalFilter?: 'all' | 'strong' | 'weak' | 'dead'
 }
 
-export function MapView({ 
+export const MapView = forwardRef<MapViewHandle, MapViewProps>(({ 
   onMarkerClick,
   onMapClick,
   measurements = [],
-}: MapViewProps) {
+  signalFilter = 'all',
+}, ref) => {
   const [hoveredId, setHoveredId] = useState<string | number | null>(null)
   const [mapLoaded, setMapLoaded] = useState(false)
+  const mapRef = useRef<any>(null)
+  const coordinatesRef = useRef<{ lat: number; lng: number } | null>(null)
   const { coordinates, isLoading } = useLocation()
 
   // San Francisco center coordinates as fallback
   const defaultCenter = { lat: 37.7749, lng: -122.4194 }
   const center = coordinates || defaultCenter
+
+  // Update coordinates ref when coordinates change
+  useEffect(() => {
+    coordinatesRef.current = coordinates || defaultCenter
+  }, [coordinates])
+
+  // Expose recenter function via ref
+  useImperativeHandle(ref, () => ({
+    recenter: () => {
+      if (mapRef.current && coordinatesRef.current) {
+        mapRef.current.panTo({
+          lat: coordinatesRef.current.lat,
+          lng: coordinatesRef.current.lng,
+        })
+      }
+    }
+  }), [])
 
   // Combine mock signals with dynamic measurements
   const allSignals = useMemo(() => {
@@ -191,6 +233,14 @@ export function MapView({
     }))
     return [...mockSignals, ...measurementSignals]
   }, [measurements])
+
+  // Filter signals based on signalFilter prop
+  const filteredSignals = useMemo(() => {
+    if (signalFilter === 'all') {
+      return allSignals
+    }
+    return allSignals.filter(signal => signal.strength === signalFilter)
+  }, [allSignals, signalFilter])
 
   return (
     <div className="absolute inset-0 bg-void" style={{ zIndex: 0, isolation: 'isolate' }}>
@@ -219,9 +269,12 @@ export function MapView({
         >
         {/* Recenter map when user location is found */}
         {coordinates && <MapRecenter lat={coordinates.lat} lng={coordinates.lng} />}
+        
+        {/* Store map instance for manual recentering */}
+        <MapInstanceStore onMapReady={(map) => { mapRef.current = map }} />
 
-        {/* WiFi Signal Markers */}
-        {allSignals.map((signal) => (
+        {/* WiFi Signal Markers - filtered */}
+        {filteredSignals.map((signal) => (
           <WiFiMarker
             key={signal.id}
             signal={signal}
@@ -295,4 +348,6 @@ export function MapView({
       </svg>
     </div>
   )
-}
+})
+
+MapView.displayName = "MapView"
