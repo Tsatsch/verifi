@@ -28,8 +28,8 @@ interface BottomControlsProps {
 const filterOptions: { value: SignalFilter; label: string; color: string }[] = [
   { value: 'all', label: 'All Signals', color: '#22d3ee' },
   { value: 'strong', label: 'Strong (Green)', color: '#34d399' },
-  { value: 'weak', label: 'Weak (Yellow)', color: '#fbbf24' },
-  { value: 'dead', label: 'Dead (Red)', color: '#f87171' },
+  { value: 'weak', label: 'Medium (Yellow)', color: '#fbbf24' },
+  { value: 'dead', label: 'Weak (Red)', color: '#f87171' },
 ]
 
 export function BottomControls({ 
