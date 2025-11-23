@@ -40,10 +40,10 @@ export function WalletButton() {
         <DropdownMenuTrigger asChild>
           <Button 
             variant="outline" 
-            className="gap-1.5 md:gap-2 bg-glass backdrop-blur-xl border-signal-green/30 hover:bg-signal-green/10 hover:border-signal-green/50 h-8 md:h-10 px-2 md:px-3 touch-manipulation transition-all"
+            className="gap-2 md:gap-3 bg-glass backdrop-blur-xl border-signal-green/30 hover:bg-signal-green/10 hover:border-signal-green/50 h-12 md:h-[60px] px-3 md:px-5 touch-manipulation transition-all"
           >
-            <Wallet className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0 text-signal-green" />
-            <span className="font-mono text-[10px] md:text-xs text-foreground">{shortAddress}</span>
+            <Wallet className="h-5 w-5 md:h-6 md:w-6 shrink-0 text-signal-green" />
+            <span className="font-mono text-[15px] md:text-lg text-foreground">{shortAddress}</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56 bg-glass backdrop-blur-xl border border-signal-green/20">

@@ -47,10 +47,10 @@ export function BottomControls({
         <PopoverTrigger asChild>
           <Button 
             size="icon" 
-            className="h-11 w-11 md:h-12 md:w-12 rounded-full bg-glass backdrop-blur-xl border border-signal-green/20 hover:bg-signal-green/10 hover:border-signal-green/40 touch-manipulation transition-all"
+            className="h-16 w-16 md:h-[72px] md:w-[72px] rounded-full bg-glass backdrop-blur-xl border border-signal-green/20 hover:bg-signal-green/10 hover:border-signal-green/40 touch-manipulation transition-all"
             aria-label="Filter by signal strength"
           >
-            <Filter className="h-4 w-4 md:h-5 md:w-5 text-signal-green" />
+            <Filter className="h-6 w-6 md:h-8 md:w-8 text-signal-green" />
           </Button>
         </PopoverTrigger>
         <PopoverContent 
@@ -95,7 +95,7 @@ export function BottomControls({
                 <button
                   onClick={onAddNew}
                   disabled={isScanning || !isWalletConnected}
-                  className="group relative h-16 w-16 md:h-20 md:w-20 rounded-full bg-gradient-to-br from-signal-green to-cyber-cyan shadow-[0_0_25px_rgba(52,211,153,0.6),0_0_50px_rgba(52,211,153,0.4)] transition-all duration-300 active:scale-95 md:hover:scale-110 md:hover:shadow-[0_0_35px_rgba(52,211,153,0.8),0_0_70px_rgba(52,211,153,0.5)] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 disabled:md:hover:scale-100 disabled:md:hover:shadow-[0_0_25px_rgba(52,211,153,0.6),0_0_50px_rgba(52,211,153,0.4)] touch-manipulation"
+                  className="group relative h-24 w-24 md:h-[120px] md:w-[120px] rounded-full bg-gradient-to-br from-signal-green to-cyber-cyan shadow-[0_0_25px_rgba(52,211,153,0.6),0_0_50px_rgba(52,211,153,0.4)] transition-all duration-300 active:scale-95 md:hover:scale-110 md:hover:shadow-[0_0_35px_rgba(52,211,153,0.8),0_0_70px_rgba(52,211,153,0.5)] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 disabled:md:hover:scale-100 disabled:md:hover:shadow-[0_0_25px_rgba(52,211,153,0.6),0_0_50px_rgba(52,211,153,0.4)] touch-manipulation"
                   aria-label="Add WiFi measurement"
                 >
                   {/* Animated background pulse */}
@@ -109,7 +109,7 @@ export function BottomControls({
                   {/* Inner content container */}
                   <div className="relative z-10 flex h-full w-full items-center justify-center">
                     <Plus
-                      className={`h-8 w-8 md:h-10 md:w-10 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] transition-transform ${isScanning ? "animate-spin" : "md:group-hover:scale-110"}`}
+                      className={`h-12 w-12 md:h-[60px] md:w-[60px] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] transition-transform ${isScanning ? "animate-spin" : "md:group-hover:scale-110"}`}
                       strokeWidth={3}
                     />
                   </div>
@@ -135,10 +135,10 @@ export function BottomControls({
             <Button 
               size="icon" 
               onClick={onRecenter}
-              className="h-11 w-11 md:h-12 md:w-12 rounded-full bg-glass backdrop-blur-xl border border-signal-green/20 hover:bg-signal-green/10 hover:border-signal-green/40 touch-manipulation transition-all"
+              className="h-16 w-16 md:h-[72px] md:w-[72px] rounded-full bg-glass backdrop-blur-xl border border-signal-green/20 hover:bg-signal-green/10 hover:border-signal-green/40 touch-manipulation transition-all"
               aria-label="Recenter map to your location"
             >
-              <Crosshair className="h-4 w-4 md:h-5 md:w-5 text-signal-green" />
+              <Crosshair className="h-6 w-6 md:h-8 md:w-8 text-signal-green" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>

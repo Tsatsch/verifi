@@ -270,7 +270,7 @@ export function WiFiFormModal({
             <Button
               type="submit"
               disabled={isSubmitting || isLoading}
-              className="w-full h-12 md:h-11 rounded-full bg-signal-green text-void hover:bg-signal-green/90 active:bg-signal-green/80 font-semibold disabled:opacity-50 touch-manipulation text-base"
+              className="w-full h-[72px] md:h-[66px] rounded-full bg-signal-green text-void hover:bg-signal-green/90 active:bg-signal-green/80 font-semibold disabled:opacity-50 touch-manipulation text-2xl"
             >
               {isSubmitting ? "Submitting..." : isLoading ? "Measuring Speed..." : "Submit Measurement"}
             </Button>
