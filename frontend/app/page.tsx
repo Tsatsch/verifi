@@ -91,6 +91,53 @@ function PageContent() {
     setShowLocationInfo(true)
   }
 
+  const handleNewMeasurementFromSignal = async () => {
+    if (!isWalletConnected) {
+      toast({
+        title: "Wallet not connected",
+        description: "Please connect your wallet to add measurements",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!selectedSignal) {
+      return
+    }
+
+    // Set clicked location to the signal's location
+    setClickedLocation({ lat: selectedSignal.lat, lng: selectedSignal.lng })
+    
+    // Run speed test for the signal location
+    setIsScanning(true)
+    try {
+      const result = await measureConnectionSpeed(10)
+      
+      if ('error' in result) {
+        toast({
+          title: "Speed test failed",
+          description: result.error as string,
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Store measurement data and show form
+      setMeasurementData({ speed: result.speed })
+      setShowWiFiForm(true)
+      setSelectedSignal(null) // Close signal card
+    } catch (error) {
+      console.error(error)
+      toast({
+        title: "Error",
+        description: "Failed to run speed test",
+        variant: "destructive",
+      })
+    } finally {
+      setIsScanning(false)
+    }
+  }
+
   const handleAddMeasurementFromLocation = async () => {
     if (!isWalletConnected) {
       toast({
@@ -160,38 +207,84 @@ function PageContent() {
       return
     }
 
-    // Determine strength based on speed
-    const strength: 'strong' | 'weak' | 'dead' = 
-      data.speed >= 100 ? 'strong' : 
-      data.speed >= 30 ? 'weak' : 
-      'dead'
+    // Check if there's an existing measurement at this location (within 50 meters)
+    const existingMeasurement = measurements.find(m => {
+      const distance = Math.sqrt(
+        Math.pow((m.lat - data.location!.lat) * 111000, 2) + 
+        Math.pow((m.lng - data.location!.lng) * 111000, 2)
+      )
+      return distance < 50 // 50 meters threshold
+    })
 
-    // Create measurement object
-    const measurement: Measurement = {
-      id: `measurement-${Date.now()}`,
-      lat: data.location.lat,
-      lng: data.location.lng,
-      ssid: data.wifiName,
-      speed: data.speed,
-      strength,
-      verified: 1,
-      timestamp: new Date().toISOString(),
-      walletAddress: evmAddress,
+    if (existingMeasurement) {
+      // Update existing measurement with averaged speed
+      const currentVerified = existingMeasurement.verified || 1
+      const currentSpeed = existingMeasurement.speed
+      const newAverageSpeed = Math.round((currentSpeed * currentVerified + data.speed) / (currentVerified + 1))
+      
+      // Determine new strength based on averaged speed
+      const strength: 'strong' | 'weak' | 'dead' = 
+        newAverageSpeed >= 100 ? 'strong' : 
+        newAverageSpeed >= 30 ? 'weak' : 
+        'dead'
+
+      const updatedMeasurement: Measurement = {
+        ...existingMeasurement,
+        speed: newAverageSpeed,
+        strength,
+        verified: currentVerified + 1,
+        timestamp: new Date().toISOString(),
+      }
+
+      console.log("📍 Updating existing measurement:", {
+        oldSpeed: currentSpeed,
+        newSpeed: data.speed,
+        averagedSpeed: newAverageSpeed,
+        verified: currentVerified + 1,
+      })
+
+      // Update in the measurements array
+      setMeasurements((prev) => 
+        prev.map(m => m.id === existingMeasurement.id ? updatedMeasurement : m)
+      )
+
+      toast({
+        title: "Measurement updated!",
+        description: `${data.wifiName} - ${newAverageSpeed} Mbps (${currentVerified + 1} verifications)`,
+      })
+    } else {
+      // Create new measurement
+      const strength: 'strong' | 'weak' | 'dead' = 
+        data.speed >= 100 ? 'strong' : 
+        data.speed >= 30 ? 'weak' : 
+        'dead'
+
+      const measurement: Measurement = {
+        id: `measurement-${Date.now()}`,
+        lat: data.location.lat,
+        lng: data.location.lng,
+        ssid: data.wifiName,
+        speed: data.speed,
+        strength,
+        verified: 1,
+        timestamp: new Date().toISOString(),
+        walletAddress: evmAddress,
+      }
+
+      console.log("📍 Creating new measurement at:", {
+        lat: measurement.lat,
+        lng: measurement.lng,
+        ssid: measurement.ssid,
+      })
+
+      // Add to map
+      setMeasurements((prev) => [...prev, measurement])
+
+      toast({
+        title: "Measurement added!",
+        description: `${data.wifiName} - ${data.speed} Mbps`,
+      })
     }
-
-    console.log("📍 Creating measurement at:", {
-      lat: measurement.lat,
-      lng: measurement.lng,
-      ssid: measurement.ssid,
-    })
-
-    // Immediately add to map
-    setMeasurements((prev) => [...prev, measurement])
-    
-    toast({
-      title: "Measurement added!",
-      description: `${data.wifiName} - ${data.speed} Mbps`,
-    })
 
     // Close the form and reset states
     setShowWiFiForm(false)
@@ -259,7 +352,15 @@ function PageContent() {
 
         {/* Modals - Separate high z-index layer */}
         {/* Signal Card Modal */}
-        {selectedSignal && <SignalCard signal={selectedSignal} onClose={() => setSelectedSignal(null)} />}
+        {selectedSignal && (
+          <SignalCard 
+            signal={selectedSignal} 
+            onClose={() => setSelectedSignal(null)}
+            onNewMeasurement={handleNewMeasurementFromSignal}
+            isWalletConnected={!!evmAddress}
+            isScanning={isScanning}
+          />
+        )}
 
         {/* WiFi Form Modal */}
         {showWiFiForm && measurementData && (

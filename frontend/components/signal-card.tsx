@@ -1,14 +1,23 @@
 "use client"
 
-import { X, Lock, LockOpen } from "lucide-react"
+import { X, Lock, LockOpen, Activity } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface SignalCardProps {
   signal: any
   onClose: () => void
+  onNewMeasurement?: () => void
+  isWalletConnected?: boolean
+  isScanning?: boolean
 }
 
-export function SignalCard({ signal, onClose }: SignalCardProps) {
+export function SignalCard({ 
+  signal, 
+  onClose, 
+  onNewMeasurement,
+  isWalletConnected = false,
+  isScanning = false,
+}: SignalCardProps) {
   return (
     <>
       {/* Backdrop */}
@@ -57,9 +66,30 @@ export function SignalCard({ signal, onClose }: SignalCardProps) {
         </div>
 
         {/* Actions */}
-        <Button className="w-full h-12 md:h-11 rounded-full bg-cyber-cyan text-void hover:bg-cyber-cyan/90 active:bg-cyber-cyan/80 touch-manipulation text-base">
-          Connect Network
-        </Button>
+        <div className="space-y-3">
+          <Button 
+            onClick={onNewMeasurement}
+            disabled={!isWalletConnected || isScanning}
+            className="w-full h-12 md:h-11 rounded-full bg-cyber-cyan text-void hover:bg-cyber-cyan/90 active:bg-cyber-cyan/80 touch-manipulation text-base font-bold"
+          >
+            {isScanning ? (
+              <>
+                <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-void border-t-transparent" />
+                Running Speed Test...
+              </>
+            ) : (
+              <>
+                <Activity className="h-4 w-4 mr-2" />
+                New Measurement
+              </>
+            )}
+          </Button>
+          {!isWalletConnected && (
+            <p className="text-xs text-center text-foreground/60">
+              Connect your wallet to add measurements
+            </p>
+          )}
+        </div>
       </div>
     </>
   )
