@@ -1,8 +1,8 @@
-"use client"
+ "use client"
 
 import { useState } from "react"
 import { useEvmAddress } from "@coinbase/cdp-hooks"
-import { measureConnectionSpeed } from "@/lib/speed-test"
+import { measureConnectionSpeed, type SpeedTestResult } from "@/lib/speed-test"
 import { useToast } from "@/hooks/use-toast"
 import { useLocation } from "@/hooks/use-location"
 import { GoogleMapsProvider } from "@/components/google-maps-provider"
@@ -16,7 +16,7 @@ export default function Page() {
   const [selectedSignal, setSelectedSignal] = useState<any>(null)
   const [isScanning, setIsScanning] = useState(false)
   const [showWiFiForm, setShowWiFiForm] = useState(false)
-  const [measurementData, setMeasurementData] = useState<{ speed: number } | null>(null)
+  const [measurementData, setMeasurementData] = useState<SpeedTestResult | null>(null)
   const { evmAddress } = useEvmAddress()
   const isWalletConnected = !!evmAddress
 
@@ -33,22 +33,27 @@ export default function Page() {
       return
     }
 
+    // Open form immediately
+    setShowWiFiForm(true)
+    setMeasurementData({ speed: 0, unit: "Mbps" }) // Placeholder, will be updated
+    
     setIsScanning(true)
     try {
       const result = await measureConnectionSpeed(10)
       
-      if ('error' in result) {
+      if ("error" in result) {
         toast({
           title: "Speed test failed",
           description: result.error as string,
           variant: "destructive",
         })
+        setShowWiFiForm(false)
+        setMeasurementData(null)
         return
       }
 
-      // Store measurement data and show form
-      setMeasurementData({ speed: result.speed })
-      setShowWiFiForm(true)
+      // Update measurement data with full measurement details
+      setMeasurementData(result)
     } catch (error) {
       console.error(error)
       toast({
@@ -56,6 +61,8 @@ export default function Page() {
         description: "Failed to run speed test",
         variant: "destructive",
       })
+      setShowWiFiForm(false)
+      setMeasurementData(null)
     } finally {
       setIsScanning(false)
     }
@@ -111,6 +118,9 @@ export default function Page() {
           <WiFiFormModal
             speed={measurementData.speed}
             location={coordinates}
+            isLoading={isScanning}
+            measurementDetails={measurementData}
+            walletAddress={evmAddress ?? null}
             onClose={() => {
               setShowWiFiForm(false)
               setMeasurementData(null)

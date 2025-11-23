@@ -7,10 +7,14 @@ import { Label } from "@/components/ui/label"
 import { StarRating } from "@/components/ui/star-rating"
 import { useState } from "react"
 import { useToast } from "@/hooks/use-toast"
+import type { SpeedTestResult } from "@/lib/speed-test"
 
 interface WiFiFormModalProps {
   speed: number
   location: { lat: number; lng: number } | null
+  isLoading?: boolean
+  walletAddress: string | null
+  measurementDetails?: Pick<SpeedTestResult, "method" | "methods">
   onClose: () => void
   onSubmit: (data: WiFiFormData) => void
 }
@@ -20,9 +24,19 @@ export interface WiFiFormData {
   speed: number
   location: { lat: number; lng: number } | null
   satisfaction: number
+  walletAddress: string | null
+  timestamp: string
 }
 
-export function WiFiFormModal({ speed, location, onClose, onSubmit }: WiFiFormModalProps) {
+export function WiFiFormModal({
+  speed,
+  location,
+  isLoading = false,
+  walletAddress,
+  measurementDetails,
+  onClose,
+  onSubmit,
+}: WiFiFormModalProps) {
   const [wifiName, setWifiName] = useState("")
   const [satisfaction, setSatisfaction] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -51,12 +65,17 @@ export function WiFiFormModal({ speed, location, onClose, onSubmit }: WiFiFormMo
 
     setIsSubmitting(true)
     try {
-      await onSubmit({
+      const formData = {
         wifiName,
         speed,
         location,
         satisfaction,
-      })
+        walletAddress,
+        // ISO 8601 string in UTC (Date.toISOString() is always UTC)
+        timestamp: new Date().toISOString(),
+      }
+      console.log("Submitting WiFi form data:", JSON.stringify(formData, null, 2))
+      await onSubmit(formData)
     } finally {
       setIsSubmitting(false)
     }
@@ -65,11 +84,12 @@ export function WiFiFormModal({ speed, location, onClose, onSubmit }: WiFiFormMo
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm animate-fade-in" />
+      <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm" />
 
       {/* Modal */}
-      <div className="fixed left-1/2 top-1/2 z-50 w-[90%] max-w-md -translate-x-1/2 -translate-y-1/2 animate-scale-in">
-        <div className="relative rounded-2xl bg-glass p-8 backdrop-blur-xl border border-cyber-cyan/20">
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="w-[90%] max-w-md">
+          <div className="relative rounded-2xl bg-glass p-8 backdrop-blur-xl border border-cyber-cyan/20">
           {/* Close button */}
           <button
             onClick={onClose}
@@ -95,7 +115,8 @@ export function WiFiFormModal({ speed, location, onClose, onSubmit }: WiFiFormMo
                 placeholder="Enter network name"
                 value={wifiName}
                 onChange={(e) => setWifiName(e.target.value)}
-                className="bg-void/40 border-foreground/20 text-foreground placeholder:text-foreground/40"
+                disabled={isLoading}
+                className="bg-void/40 border-foreground/20 text-foreground placeholder:text-foreground/40 disabled:opacity-50"
               />
             </div>
 
@@ -104,11 +125,40 @@ export function WiFiFormModal({ speed, location, onClose, onSubmit }: WiFiFormMo
               <Label htmlFor="speed" className="text-foreground/80">
                 Measured Speed
               </Label>
-              <div className="flex items-baseline gap-2 rounded-lg bg-void/40 border border-foreground/20 px-4 py-3">
-                <span className="font-jetbrains text-3xl font-bold text-cyber-cyan">
-                  {speed}
-                </span>
-                <span className="text-sm text-foreground/60">Mbps</span>
+              <div className="space-y-1">
+                <div className="flex items-baseline gap-2 rounded-lg bg-void/40 border border-foreground/20 px-4 py-3">
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-cyber-cyan border-t-transparent" />
+                      <span className="text-sm text-foreground/60">Measuring speed...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <span className="font-jetbrains text-3xl font-bold text-cyber-cyan">
+                        {speed}
+                      </span>
+                      <span className="text-sm text-foreground/60">Mbps</span>
+                    </>
+                  )}
+                </div>
+
+                {measurementDetails && (
+                  <p className="text-xs text-foreground/50">
+                    {measurementDetails.method && <span>{measurementDetails.method}</span>}
+                    {measurementDetails.methods?.cdn && (
+                      <span>
+                        {" • CDN files: "}
+                        {measurementDetails.methods.cdn.speed} Mbps
+                      </span>
+                    )}
+                    {measurementDetails.methods?.cloudflare && (
+                      <span>
+                        {" • Cloudflare: "}
+                        {measurementDetails.methods.cloudflare.speed} Mbps
+                      </span>
+                    )}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -131,7 +181,10 @@ export function WiFiFormModal({ speed, location, onClose, onSubmit }: WiFiFormMo
             <div className="space-y-3">
               <Label className="text-foreground/80">How fast is Wifi?</Label>
               <div className="flex justify-center py-2">
-                <StarRating value={satisfaction} onChange={setSatisfaction} />
+                <StarRating 
+                  value={satisfaction} 
+                  onChange={isLoading ? () => {} : setSatisfaction} 
+                />
               </div>
               {satisfaction > 0 && (
                 <p className="text-center text-sm text-foreground/60">
@@ -147,12 +200,13 @@ export function WiFiFormModal({ speed, location, onClose, onSubmit }: WiFiFormMo
             {/* Submit Button */}
             <Button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isLoading}
               className="w-full rounded-full bg-cyber-cyan text-void hover:bg-cyber-cyan/90 font-semibold disabled:opacity-50"
             >
-              {isSubmitting ? "Submitting..." : "Submit Measurement"}
+              {isSubmitting ? "Submitting..." : isLoading ? "Measuring Speed..." : "Submit Measurement"}
             </Button>
           </form>
+          </div>
         </div>
       </div>
     </>
