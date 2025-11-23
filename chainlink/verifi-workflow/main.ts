@@ -121,6 +121,7 @@ const onStatsTrigger = async (runtime: Runtime<Config>): Promise<any> => {
   }
 };
 
+
 const initWorkflow = (config: Config) => {
   const cron = new cre.capabilities.CronCapability();
 
