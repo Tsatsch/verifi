@@ -2,6 +2,7 @@ import { cre, Runner, type Runtime, type Task } from "@chainlink/cre-sdk";
 import { locate_ip } from "./tasks/locate_ip"; // import the task
 import { check_two_loc } from "./tasks/check_two_loc"; // import the location checker
 import { calculate_stats } from "./tasks/calculate_stats"; // import the statistics calculator
+import { calculate_wifi_stats } from "./tasks/calculate_wifi_stats"; // import the Wi-Fi statistics calculator
 
 type Config = {
   schedule: string;
@@ -121,9 +122,71 @@ const onStatsTrigger = async (runtime: Runtime<Config>): Promise<any> => {
   }
 };
 
+// Handler for Wi-Fi statistics calculation aggregated by Wi-Fi name
+// This can be triggered via HTTP or manual invocation
+const onWifiStatsTrigger = async (runtime: Runtime<Config>): Promise<any> => {
+  try {
+    // Get data points from the trigger input
+    // For HTTP triggers, this comes from the request body
+    // For manual invocation, use default test data
+    let dataPoints: any[] = [];
+    
+    try {
+      // Try to get data from HTTP trigger
+      const triggerData = (runtime as any).getTriggerData?.() || {};
+      if (triggerData && triggerData.dataPoints && Array.isArray(triggerData.dataPoints)) {
+        dataPoints = triggerData.dataPoints;
+        runtime.log(`Received ${dataPoints.length} data points from HTTP trigger`);
+      } else {
+        // Fallback to test data for manual testing
+        dataPoints = validatedInputs.map(input => ({
+          wifiName: `WiFi_${input.walletAddress.slice(0, 8)}`,
+          speed: input.speed,
+          lat: input.lat,
+          lon: input.lon,
+          timestamp: input.timestamp,
+          walletAddress: input.walletAddress,
+          ip: input.ip
+        }));
+        runtime.log(`Using test data: ${dataPoints.length} data points`);
+      }
+    } catch (e) {
+      // If trigger data access fails, use test data
+      runtime.log(`Could not access trigger data, using test data: ${e}`);
+      dataPoints = validatedInputs.map(input => ({
+        wifiName: `WiFi_${input.walletAddress.slice(0, 8)}`,
+        speed: input.speed,
+        lat: input.lat,
+        lon: input.lon,
+        timestamp: input.timestamp,
+        walletAddress: input.walletAddress,
+        ip: input.ip
+      }));
+    }
+
+    runtime.log(`Calculating Wi-Fi statistics for ${dataPoints.length} data points using CRE`);
+    
+    // Use the CRE-based calculate_wifi_stats function
+    const wifiStatistics = calculate_wifi_stats(runtime, { dataPoints });
+    
+    runtime.log(`Wi-Fi statistics completed for ${wifiStatistics.length} networks`);
+    
+    return {
+      success: true,
+      count: wifiStatistics.length,
+      statistics: wifiStatistics,
+      timestamp: new Date().toISOString()
+    };
+  } catch (err) {
+    runtime.log(`Error in Wi-Fi statistics workflow: ${err}`);
+    throw err;
+  }
+};
+
 
 const initWorkflow = (config: Config) => {
   const cron = new cre.capabilities.CronCapability();
+  const http = new cre.capabilities.HTTPCapability();
 
   return [
     // Trigger for individual location validation
@@ -139,6 +202,14 @@ const initWorkflow = (config: Config) => {
         { schedule: "0 0 */6 * * *" } // Every 6 hours for statistics
       ),
       onStatsTrigger
+    ),
+    // HTTP trigger for Wi-Fi statistics (can be called from backend)
+    cre.handler(
+      http.trigger({
+        path: "/api/wifi-statistics",
+        method: "POST"
+      }),
+      onWifiStatsTrigger
     ),
   ];
 };
