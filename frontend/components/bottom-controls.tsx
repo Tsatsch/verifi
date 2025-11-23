@@ -26,7 +26,7 @@ interface BottomControlsProps {
 }
 
 const filterOptions: { value: SignalFilter; label: string; color: string }[] = [
-  { value: 'all', label: 'All Signals', color: '#22d3ee' },
+  { value: 'all', label: 'All Signals', color: '#34d399' },
   { value: 'strong', label: 'Strong (Green)', color: '#34d399' },
   { value: 'weak', label: 'Medium (Yellow)', color: '#fbbf24' },
   { value: 'dead', label: 'Weak (Red)', color: '#f87171' },
@@ -47,16 +47,16 @@ export function BottomControls({
         <PopoverTrigger asChild>
           <Button 
             size="icon" 
-            className="h-11 w-11 md:h-12 md:w-12 rounded-full bg-glass backdrop-blur-xl hover:bg-glass/80 touch-manipulation"
+            className="h-11 w-11 md:h-12 md:w-12 rounded-full bg-glass backdrop-blur-xl border border-signal-green/20 hover:bg-signal-green/10 hover:border-signal-green/40 touch-manipulation transition-all"
             aria-label="Filter by signal strength"
           >
-            <Filter className="h-4 w-4 md:h-5 md:w-5 text-foreground/80" />
+            <Filter className="h-4 w-4 md:h-5 md:w-5 text-signal-green" />
           </Button>
         </PopoverTrigger>
         <PopoverContent 
           side="top" 
           align="start"
-          className="w-56 bg-glass/95 backdrop-blur-xl border-cyber-cyan/20"
+          className="w-56 bg-glass/95 backdrop-blur-xl border-signal-green/20"
         >
           <div className="space-y-1">
             <div className="px-2 py-1.5 text-sm font-semibold text-foreground/90">
@@ -76,7 +76,7 @@ export function BottomControls({
                   {option.label}
                 </span>
                 {signalFilter === option.value && (
-                  <Check className="h-4 w-4 text-cyber-cyan" />
+                  <Check className="h-4 w-4 text-signal-green" />
                 )}
               </button>
             ))}
@@ -95,12 +95,12 @@ export function BottomControls({
                 <button
                   onClick={onAddNew}
                   disabled={isScanning || !isWalletConnected}
-                  className="group relative h-16 w-16 md:h-20 md:w-20 rounded-full bg-gradient-to-br from-cyber-cyan to-signal-green shadow-[0_0_25px_rgba(34,211,238,0.6),0_0_50px_rgba(34,211,238,0.4)] transition-all duration-300 active:scale-95 md:hover:scale-110 md:hover:shadow-[0_0_35px_rgba(34,211,238,0.8),0_0_70px_rgba(34,211,238,0.5)] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 disabled:md:hover:scale-100 disabled:md:hover:shadow-[0_0_25px_rgba(34,211,238,0.6),0_0_50px_rgba(34,211,238,0.4)] touch-manipulation"
+                  className="group relative h-16 w-16 md:h-20 md:w-20 rounded-full bg-gradient-to-br from-signal-green to-cyber-cyan shadow-[0_0_25px_rgba(52,211,153,0.6),0_0_50px_rgba(52,211,153,0.4)] transition-all duration-300 active:scale-95 md:hover:scale-110 md:hover:shadow-[0_0_35px_rgba(52,211,153,0.8),0_0_70px_rgba(52,211,153,0.5)] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 disabled:md:hover:scale-100 disabled:md:hover:shadow-[0_0_25px_rgba(52,211,153,0.6),0_0_50px_rgba(52,211,153,0.4)] touch-manipulation"
                   aria-label="Add WiFi measurement"
                 >
                   {/* Animated background pulse */}
                   <div
-                    className={`absolute inset-0 rounded-full bg-gradient-to-br from-cyber-cyan to-signal-green ${isScanning ? "animate-ping opacity-75" : "animate-pulse-slow opacity-40"}`}
+                    className={`absolute inset-0 rounded-full bg-gradient-to-br from-signal-green to-cyber-cyan ${isScanning ? "animate-ping opacity-75" : "animate-pulse-slow opacity-40"}`}
                   />
                   
                   {/* Outer glow ring */}
@@ -135,10 +135,10 @@ export function BottomControls({
             <Button 
               size="icon" 
               onClick={onRecenter}
-              className="h-11 w-11 md:h-12 md:w-12 rounded-full bg-glass backdrop-blur-xl hover:bg-glass/80 touch-manipulation"
+              className="h-11 w-11 md:h-12 md:w-12 rounded-full bg-glass backdrop-blur-xl border border-signal-green/20 hover:bg-signal-green/10 hover:border-signal-green/40 touch-manipulation transition-all"
               aria-label="Recenter map to your location"
             >
-              <Crosshair className="h-4 w-4 md:h-5 md:w-5 text-foreground/80" />
+              <Crosshair className="h-4 w-4 md:h-5 md:w-5 text-signal-green" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>

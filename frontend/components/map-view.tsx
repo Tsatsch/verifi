@@ -1,32 +1,46 @@
 "use client"
 
-import { useState, useEffect, useMemo, useImperativeHandle, forwardRef, useRef } from "react"
-import { Map, AdvancedMarker, useMap } from "@vis.gl/react-google-maps"
+import { useState, useEffect, useMemo } from "react"
+import { Map as GoogleMap, AdvancedMarker, useMap } from "@vis.gl/react-google-maps"
 import { useLocation } from "@/hooks/use-location"
 import type { Measurement } from "@/types/measurement"
 
-const mockSignals = [
-  // Strong signals - Excellent WiFi spots
-  { id: 1, lat: 37.7749, lng: -122.4194, strength: "strong", ssid: "CoffeeHub_Guest", speed: 145, verified: 12 },
-  { id: 2, lat: 37.7769, lng: -122.4174, strength: "strong", ssid: "FastCafe_5G", speed: 180, verified: 24 },
-  { id: 3, lat: 37.7779, lng: -122.4164, strength: "strong", ssid: "TechHub_Premium", speed: 220, verified: 38 },
-  { id: 4, lat: 37.7719, lng: -122.4184, strength: "strong", ssid: "CoWork_Space", speed: 165, verified: 19 },
+// Export mockSignals so they can be used in leaderboard
+// ETHGlobal center coordinates: -34.584203, -58.390394
+// All points are clustered around ETHGlobal within ~500m radius
+export const mockSignals = [
+  // ETHGlobal - Premium signal (should be in leaderboard)
+  { id: 1, lat: -34.584203, lng: -58.390394, strength: "strong", ssid: "ETHGlobal", speed: 55, verified: 89 },
   
-  // Weak signals - Decent but slow
-  { id: 5, lat: 37.7759, lng: -122.4184, strength: "weak", ssid: "Library_Free", speed: 45, verified: 5 },
-  { id: 6, lat: 37.7729, lng: -122.4214, strength: "weak", ssid: "SlowSpot_Public", speed: 32, verified: 8 },
-  { id: 7, lat: 37.7749, lng: -122.4224, strength: "weak", ssid: "ParkBench_WiFi", speed: 28, verified: 3 },
-  { id: 8, lat: 37.7789, lng: -122.4194, strength: "weak", ssid: "OldShop_Guest", speed: 38, verified: 6 },
+  // Strong signals around ETHGlobal (randomized positions within ~500m)
+  { id: 2, lat: -34.58467, lng: -58.39012, strength: "strong", ssid: "Recoleta_Cafe_5G", speed: 185, verified: 32 },
+  { id: 3, lat: -34.58389, lng: -58.39078, strength: "strong", ssid: "Cementerio_WiFi", speed: 165, verified: 28 },
+  { id: 4, lat: -34.58445, lng: -58.38967, strength: "strong", ssid: "Museo_Bellas_Artes", speed: 220, verified: 45 },
+  { id: 5, lat: -34.58356, lng: -58.39123, strength: "strong", ssid: "Plaza_Francia_Guest", speed: 195, verified: 38 },
+  { id: 6, lat: -34.58489, lng: -58.39045, strength: "strong", ssid: "Recoleta_Mall_Premium", speed: 250, verified: 52 },
+  { id: 7, lat: -34.58412, lng: -58.38989, strength: "strong", ssid: "TechHub_Recoleta", speed: 210, verified: 41 },
+  { id: 8, lat: -34.58378, lng: -58.39056, strength: "strong", ssid: "CoWork_Space_BA", speed: 175, verified: 35 },
+  { id: 9, lat: -34.58434, lng: -58.39112, strength: "strong", ssid: "FastCafe_Recoleta", speed: 190, verified: 39 },
+  { id: 10, lat: -34.58456, lng: -58.38934, strength: "strong", ssid: "Premium_WiFi_Zone", speed: 205, verified: 43 },
+  { id: 11, lat: -34.58345, lng: -58.39089, strength: "strong", ssid: "Business_Center", speed: 195, verified: 37 },
   
-  // Dead zones - Poor connectivity
-  { id: 9, lat: 37.7739, lng: -122.4204, strength: "dead", ssid: "OldRouter_2G", speed: 8, verified: 2 },
-  { id: 10, lat: 37.7709, lng: -122.4194, strength: "dead", ssid: "BarelySurviving", speed: 12, verified: 1 },
-  { id: 11, lat: 37.7769, lng: -122.4224, strength: "dead", ssid: "DeadZone_Mall", speed: 5, verified: 1 },
+  // Medium signals around ETHGlobal (randomized positions within ~500m)
+  { id: 12, lat: -34.58423, lng: -58.38956, strength: "weak", ssid: "Biblioteca_Nacional", speed: 55, verified: 12 },
+  { id: 13, lat: -34.58367, lng: -58.39145, strength: "weak", ssid: "Parque_Thays_Free", speed: 42, verified: 8 },
+  { id: 14, lat: -34.58478, lng: -58.39023, strength: "weak", ssid: "Avenida_Santa_Fe", speed: 48, verified: 15 },
+  { id: 15, lat: -34.58334, lng: -58.39067, strength: "weak", ssid: "Barrio_Norte_WiFi", speed: 38, verified: 6 },
+  { id: 16, lat: -34.58445, lng: -58.39134, strength: "weak", ssid: "Cafe_Martinez", speed: 52, verified: 11 },
+  { id: 17, lat: -34.58412, lng: -58.38978, strength: "weak", ssid: "Restaurant_WiFi", speed: 45, verified: 9 },
+  { id: 18, lat: -34.58389, lng: -58.39112, strength: "weak", ssid: "Hotel_Recoleta", speed: 50, verified: 13 },
+  { id: 19, lat: -34.58467, lng: -58.39045, strength: "weak", ssid: "Street_Cafe", speed: 47, verified: 10 },
+  { id: 20, lat: -34.58356, lng: -58.38989, strength: "weak", ssid: "Public_WiFi", speed: 44, verified: 7 },
   
-  // Medium signals - Good performance
-  { id: 12, lat: 37.7759, lng: -122.4164, strength: "strong", ssid: "UrbanCafe_Guest", speed: 125, verified: 15 },
-  { id: 13, lat: 37.7739, lng: -122.4174, strength: "weak", ssid: "BookStore_Free", speed: 52, verified: 7 },
-  { id: 14, lat: 37.7719, lng: -122.4214, strength: "strong", ssid: "FoodHall_5G", speed: 195, verified: 28 },
+  // Weak signals around ETHGlobal (randomized positions within ~500m)
+  { id: 21, lat: -34.58434, lng: -58.39156, strength: "dead", ssid: "Old_Building_2G", speed: 12, verified: 3 },
+  { id: 22, lat: -34.58312, lng: -58.39034, strength: "dead", ssid: "Basement_Network", speed: 8, verified: 2 },
+  { id: 23, lat: -34.58489, lng: -58.39123, strength: "dead", ssid: "Slow_Connection", speed: 10, verified: 1 },
+  { id: 24, lat: -34.58378, lng: -58.38945, strength: "dead", ssid: "Weak_Signal_Zone", speed: 9, verified: 2 },
+  { id: 25, lat: -34.58445, lng: -58.39167, strength: "dead", ssid: "Poor_Coverage", speed: 11, verified: 1 },
 ]
 
 // Custom WiFi Signal Marker Component
@@ -62,81 +76,58 @@ function WiFiMarker({
       onClick={() => onMarkerClick(signal)}
       onMouseEnter={() => onHover(signal.id)}
       onMouseLeave={() => onHover(null)}
+      zIndex={isHovered ? 1000 : 100}
     >
-      {/* Custom marker content */}
-      <div className="relative cursor-pointer touch-manipulation">
-        {/* Outer pulse ring on hover - Only on desktop */}
+      {/* Custom marker content - single unified marker */}
+      <div className="relative cursor-pointer touch-manipulation" style={{ pointerEvents: 'auto' }}>
+        {/* Outer pulse ring on hover - Only on desktop, smaller */}
         {isHovered && (
           <div
-            className="hidden md:block absolute inset-0 animate-ping rounded-full opacity-75"
+            className="hidden md:block absolute inset-0 animate-ping rounded-full opacity-40"
             style={{
-              width: "40px",
-              height: "40px",
-              left: "-16px",
-              top: "-16px",
+              width: "24px",
+              height: "24px",
+              left: "-8px",
+              top: "-8px",
               backgroundColor: color,
             }}
           />
         )}
 
-        {/* White background ring for contrast on light maps */}
+        {/* Single unified marker dot with border - smaller size */}
         <div
-          className="absolute rounded-full bg-white shadow-lg"
-          style={{
-            width: "20px",
-            height: "20px",
-            left: "-6px",
-            top: "-6px",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
-          }}
-        />
-
-        {/* Dark border ring for extra definition */}
-        <div
-          className="absolute rounded-full"
-          style={{
-            width: "14px",
-            height: "14px",
-            left: "-3px",
-            top: "-3px",
-            backgroundColor: "#1a1a1a",
-            border: "1px solid rgba(255, 255, 255, 0.4)",
-          }}
-        />
-
-        {/* Core colored dot */}
-        <div
-          className="relative z-10 h-4 w-4 rounded-full transition-all duration-300"
+          className="relative z-10 h-3 w-3 rounded-full transition-all duration-300"
           style={{
             backgroundColor: color,
             boxShadow: isHovered 
-              ? `0 0 20px ${color}, 0 0 40px ${color}, inset 0 1px 2px rgba(255,255,255,0.5)` 
-              : `0 0 12px ${color}, 0 2px 4px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.5)`,
+              ? `0 0 8px ${color}, 0 0 16px ${color}, inset 0 1px 1px rgba(255,255,255,0.6)` 
+              : `0 0 4px ${color}, 0 1px 3px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.6)`,
             transform: isHovered ? "scale(1.3)" : "scale(1)",
-            border: "2px solid rgba(255, 255, 255, 0.8)",
+            border: "1.5px solid rgba(255, 255, 255, 0.9)",
           }}
         />
 
-        {/* Tooltip on hover - Hidden on mobile, shown on desktop */}
+        {/* Tooltip on hover - positioned to avoid covering map info */}
         {isHovered && (
           <div 
-            className="hidden md:block absolute left-8 top-0 z-50 min-w-[200px] animate-fade-in rounded-lg p-3 text-sm shadow-2xl"
+            className="hidden md:block absolute left-6 top-1/2 -translate-y-1/2 z-[100] min-w-[180px] animate-fade-in rounded-lg p-2.5 text-xs shadow-2xl pointer-events-none"
             style={{
-              backgroundColor: "rgba(17, 24, 39, 0.95)",
-              border: "1px solid rgba(34, 211, 238, 0.3)",
+              backgroundColor: "rgba(17, 24, 39, 0.98)",
+              border: "1px solid rgba(52, 211, 153, 0.4)",
               backdropFilter: "blur(12px)",
+              transform: "translateY(-50%)",
             }}
           >
-            <div className="font-space-grotesk font-semibold text-cyber-cyan">{signal.ssid}</div>
-            <div className="mt-1 font-jetbrains text-xs text-gray-300">
+            <div className="font-space-grotesk font-semibold text-signal-green text-xs">{signal.ssid}</div>
+            <div className="mt-0.5 font-jetbrains text-[10px] text-gray-300">
               {signal.speed} Mbps • {signal.verified} verifications
             </div>
-            <div className="mt-1.5 flex items-center gap-1.5">
+            <div className="mt-1 flex items-center gap-1">
               <div 
-                className="h-2 w-2 rounded-full" 
+                className="h-1.5 w-1.5 rounded-full" 
                 style={{ backgroundColor: color }}
               />
-              <span className="text-xs font-medium" style={{ color: color }}>
+              <span className="text-[10px] font-medium" style={{ color: color }}>
                 {signal.strength.toUpperCase()}
               </span>
             </div>
@@ -159,68 +150,26 @@ function MapRecenter({ lat, lng }: { lat: number; lng: number }) {
   return null
 }
 
-// Component to store map instance for recentering
-function MapInstanceStore({ 
-  onMapReady 
-}: { 
-  onMapReady?: (map: any) => void;
-}) {
-  const map = useMap()
-  
-  useEffect(() => {
-    if (map && onMapReady) {
-      onMapReady(map)
-    }
-  }, [map, onMapReady])
-  
-  return null
-}
-
-export interface MapViewHandle {
-  recenter: () => void
-}
-
 export interface MapViewProps {
   onMarkerClick: (signal: any) => void
-  onMapClick?: (location: { lat: number; lng: number }) => void
   measurements?: Measurement[]
-  signalFilter?: 'all' | 'strong' | 'weak' | 'dead'
+  onSignalsChange?: (signals: any[]) => void
 }
 
-export const MapView = forwardRef<MapViewHandle, MapViewProps>(({ 
+export function MapView({ 
   onMarkerClick,
-  onMapClick,
   measurements = [],
-  signalFilter = 'all',
-}, ref) => {
+  onSignalsChange,
+}: MapViewProps) {
   const [hoveredId, setHoveredId] = useState<string | number | null>(null)
   const [mapLoaded, setMapLoaded] = useState(false)
-  const mapRef = useRef<any>(null)
-  const coordinatesRef = useRef<{ lat: number; lng: number } | null>(null)
   const { coordinates, isLoading } = useLocation()
 
-  // San Francisco center coordinates as fallback
-  const defaultCenter = { lat: 37.7749, lng: -122.4194 }
+  // ETHGlobal center coordinates as default
+  const defaultCenter = { lat: -34.584203, lng: -58.390394 }
   const center = coordinates || defaultCenter
 
-  // Update coordinates ref when coordinates change
-  useEffect(() => {
-    coordinatesRef.current = coordinates || defaultCenter
-  }, [coordinates])
-
-  // Expose recenter function via ref
-  useImperativeHandle(ref, () => ({
-    recenter: () => {
-      if (mapRef.current && coordinatesRef.current) {
-        mapRef.current.panTo({
-          lat: coordinatesRef.current.lat,
-          lng: coordinatesRef.current.lng,
-        })
-      }
-    }
-  }), [])
-
-  // Combine mock signals with dynamic measurements
+  // Combine mock signals with dynamic measurements, with deduplication
   const allSignals = useMemo(() => {
     const measurementSignals = measurements.map((m) => ({
       id: m.id,
@@ -231,50 +180,56 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(({
       speed: m.speed,
       verified: m.verified,
     }))
-    return [...mockSignals, ...measurementSignals]
+    
+    // Combine and deduplicate by location and SSID (within small tolerance)
+    const combined = [...mockSignals, ...measurementSignals]
+    const seen = new Map<string, typeof combined[0]>()
+    
+    return combined.filter((signal) => {
+      // Create a key based on rounded coordinates and SSID
+      const key = `${Math.round(signal.lat * 10000)}_${Math.round(signal.lng * 10000)}_${signal.ssid}`
+      if (seen.has(key)) {
+        // Keep the one with higher verification count
+        const existing = seen.get(key)!
+        if (signal.verified > existing.verified) {
+          seen.set(key, signal)
+          return true
+        }
+        return false
+      }
+      seen.set(key, signal)
+      return true
+    })
   }, [measurements])
 
-  // Filter signals based on signalFilter prop
-  const filteredSignals = useMemo(() => {
-    if (signalFilter === 'all') {
-      return allSignals
+  // Notify parent of all signals for leaderboard
+  useEffect(() => {
+    if (onSignalsChange) {
+      onSignalsChange(allSignals)
     }
-    return allSignals.filter(signal => signal.strength === signalFilter)
-  }, [allSignals, signalFilter])
+  }, [allSignals, onSignalsChange])
 
   return (
     <div className="absolute inset-0 bg-void" style={{ zIndex: 0, isolation: 'isolate' }}>
       {/* Google Map Container */}
       <div className="absolute inset-0 h-full w-full">
-        <Map
+        <GoogleMap
           defaultCenter={defaultCenter}
-          defaultZoom={14}
+          defaultZoom={15}
           mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID}
           disableDefaultUI={true}
           gestureHandling="greedy"
-          clickableIcons={false}
           style={{ width: "100%", height: "100%" }}
-          onClick={(event) => {
-            if (onMapClick && event.detail.latLng) {
-              onMapClick({
-                lat: event.detail.latLng.lat,
-                lng: event.detail.latLng.lng,
-              })
-            }
-          }}
-          onTilesLoaded={() => {
+          onTilesLoad={() => {
             console.log("✅ Google Map tiles loaded successfully!")
             setMapLoaded(true)
           }}
         >
         {/* Recenter map when user location is found */}
         {coordinates && <MapRecenter lat={coordinates.lat} lng={coordinates.lng} />}
-        
-        {/* Store map instance for manual recentering */}
-        <MapInstanceStore onMapReady={(map) => { mapRef.current = map }} />
 
-        {/* WiFi Signal Markers - filtered */}
-        {filteredSignals.map((signal) => (
+        {/* WiFi Signal Markers */}
+        {allSignals.map((signal) => (
           <WiFiMarker
             key={signal.id}
             signal={signal}
@@ -328,7 +283,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(({
             />
           </div>
         </AdvancedMarker>
-      </Map>
+      </GoogleMap>
       </div>
 
       {/* Cyber grid overlay for aesthetic */}
@@ -348,6 +303,4 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(({
       </svg>
     </div>
   )
-})
-
-MapView.displayName = "MapView"
+}

@@ -42,7 +42,7 @@ export function WiFiFormModal({
   const [satisfaction, setSatisfaction] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [locationAddress, setLocationAddress] = useState<string>("")
-  const [wifiName, setWifiName] = useState<string>("WiFi Measurement")
+  const [wifiName, setWifiName] = useState<string>("")
   const [loadingAddress, setLoadingAddress] = useState(true)
   const { toast } = useToast()
 
@@ -55,7 +55,7 @@ export function WiFiFormModal({
     actualLocation,
   })
 
-  // Fetch address from coordinates and auto-generate WiFi name
+  // Fetch address from coordinates (but don't auto-fill wifi name)
   useEffect(() => {
     const fetchAddress = async () => {
       if (!actualLocation) {
@@ -72,17 +72,6 @@ export function WiFiFormModal({
         if (data.results && data.results.length > 0) {
           const address = data.results[0].formatted_address
           setLocationAddress(address)
-          
-          // Auto-generate wifiName from address components
-          const addressComponents = data.results[0].address_components
-          const locality = addressComponents.find((c: any) => 
-            c.types.includes("locality") || c.types.includes("sublocality")
-          )?.long_name || ""
-          const route = addressComponents.find((c: any) => 
-            c.types.includes("route")
-          )?.short_name || ""
-          
-          setWifiName(`WiFi at ${route || locality || "location"}`)
         }
       } catch (error) {
         console.error("Error fetching address:", error)
@@ -97,6 +86,15 @@ export function WiFiFormModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    if (!wifiName.trim()) {
+      toast({
+        title: "WiFi name required",
+        description: "Please enter the WiFi network name",
+        variant: "destructive",
+      })
+      return
+    }
+
     if (satisfaction === 0) {
       toast({
         title: "Rating required",
@@ -109,7 +107,7 @@ export function WiFiFormModal({
     setIsSubmitting(true)
     try {
       const formData = {
-        wifiName,
+        wifiName: wifiName.trim(),
         speed,
         location: actualLocation,
         satisfaction,
@@ -132,7 +130,7 @@ export function WiFiFormModal({
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
         <div className="w-full max-w-md md:w-[90%] md:max-h-[90vh] overflow-y-auto">
-          <div className="relative rounded-t-3xl md:rounded-2xl bg-glass p-6 md:p-8 backdrop-blur-xl border border-cyber-cyan/20 md:border-t md:border-l md:border-r md:border-b">
+          <div className="relative rounded-t-3xl md:rounded-2xl bg-glass p-6 md:p-8 backdrop-blur-xl border border-signal-green/20 md:border-t md:border-l md:border-r md:border-b">
           {/* Close button */}
           <button
             onClick={onClose}
@@ -153,10 +151,10 @@ export function WiFiFormModal({
                 <MapPin className="h-4 w-4" />
                 Measurement Location
               </Label>
-              <div className="rounded-lg bg-void/40 border border-cyber-cyan/20 px-4 py-3 min-h-[52px]">
+              <div className="rounded-lg bg-void/40 border border-signal-green/20 px-4 py-3 min-h-[52px]">
                 {loadingAddress ? (
                   <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-cyber-cyan border-t-transparent" />
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-signal-green border-t-transparent" />
                     <span className="text-sm text-foreground/60">Loading address...</span>
                   </div>
                 ) : locationAddress ? (
@@ -180,12 +178,12 @@ export function WiFiFormModal({
                 <div className="flex items-baseline gap-2 rounded-lg bg-void/40 border border-foreground/20 px-4 py-3 min-h-[52px]">
                   {isLoading ? (
                     <div className="flex items-center gap-2">
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-cyber-cyan border-t-transparent" />
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-signal-green border-t-transparent" />
                       <span className="text-sm text-foreground/60">Measuring speed...</span>
                     </div>
                   ) : (
                     <>
-                      <span className="font-jetbrains text-2xl md:text-3xl font-bold text-cyber-cyan">
+                      <span className="font-jetbrains text-2xl md:text-3xl font-bold text-signal-green">
                         {speed}
                       </span>
                       <span className="text-sm text-foreground/60">Mbps</span>
@@ -231,6 +229,23 @@ export function WiFiFormModal({
               </div>
             </div>
 
+            {/* WiFi Name Input */}
+            <div className="space-y-2">
+              <Label htmlFor="wifiName" className="text-sm md:text-base text-foreground/80">
+                WiFi Network Name (SSID)
+              </Label>
+              <Input
+                id="wifiName"
+                type="text"
+                value={wifiName}
+                onChange={(e) => setWifiName(e.target.value)}
+                placeholder="Enter WiFi network name"
+                className="rounded-lg bg-void/40 border border-signal-green/30 px-4 py-3 min-h-[52px] text-foreground placeholder:text-foreground/40 focus:border-signal-green focus:ring-signal-green/20"
+                disabled={isSubmitting || isLoading}
+                required
+              />
+            </div>
+
             {/* Satisfaction Rating */}
             <div className="space-y-3">
               <Label className="text-sm md:text-base text-foreground/80">How fast is Wifi?</Label>
@@ -255,7 +270,7 @@ export function WiFiFormModal({
             <Button
               type="submit"
               disabled={isSubmitting || isLoading}
-              className="w-full h-12 md:h-11 rounded-full bg-cyber-cyan text-void hover:bg-cyber-cyan/90 active:bg-cyber-cyan/80 font-semibold disabled:opacity-50 touch-manipulation text-base"
+              className="w-full h-12 md:h-11 rounded-full bg-signal-green text-void hover:bg-signal-green/90 active:bg-signal-green/80 font-semibold disabled:opacity-50 touch-manipulation text-base"
             >
               {isSubmitting ? "Submitting..." : isLoading ? "Measuring Speed..." : "Submit Measurement"}
             </Button>

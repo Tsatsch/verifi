@@ -1,35 +1,131 @@
 "use client"
 
 import { Trophy, TrendingUp } from "lucide-react"
+import { useMemo } from "react"
+import { useLocation } from "@/hooks/use-location"
+import type { Measurement } from "@/types/measurement"
 
-const topSignals = [
-  { ssid: "TechHub_Enterprise", speed: 950, location: "Downtown", verifications: 142 },
-  { ssid: "FastCafe_5G", speed: 780, location: "Mission District", verifications: 98 },
-  { ssid: "Library_Premium", speed: 650, location: "Castro", verifications: 76 },
-  { ssid: "CoWork_Gigabit", speed: 580, location: "SOMA", verifications: 64 },
-]
+interface SidebarLeaderboardProps {
+  measurements?: Measurement[]
+}
 
-export function SidebarLeaderboard() {
+// Calculate distance between two coordinates using Haversine formula
+function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371 // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLng = (lng2 - lng1) * Math.PI / 180
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return R * c
+}
+
+// ETHGlobal hardcoded signal (always in leaderboard)
+const ETHGLOBAL_SIGNAL = {
+  ssid: "ETHGlobal",
+  speed: 55,
+  distance: 0, // Will be calculated if coordinates available
+  verifications: 89,
+  isETHGlobal: true,
+}
+
+export function SidebarLeaderboard({ measurements = [] }: SidebarLeaderboardProps) {
+  const { coordinates } = useLocation()
+
+  // Get top signals sorted by distance and speed
+  const topSignals = useMemo(() => {
+    // Always include ETHGlobal first
+    const ethGlobalWithDistance = {
+      ...ETHGLOBAL_SIGNAL,
+      distance: coordinates 
+        ? calculateDistance(coordinates.lat, coordinates.lng, -34.584203, -58.390394)
+        : 0,
+    }
+
+    if (!coordinates || measurements.length === 0) {
+      // If no coordinates or measurements, still show ETHGlobal
+      return [ethGlobalWithDistance]
+    }
+
+    // Calculate distance for each measurement and sort by distance, then by speed
+    const signalsWithDistance = measurements
+      .filter((m) => m.ssid !== "ETHGlobal") // Exclude ETHGlobal from regular list (it's hardcoded)
+      .map((m) => ({
+        ...m,
+        distance: calculateDistance(coordinates.lat, coordinates.lng, m.lat, m.lng),
+      }))
+      .sort((a, b) => {
+        // First sort by distance (closer first), then by speed (faster first)
+        if (Math.abs(a.distance - b.distance) < 0.5) {
+          // If within 500m, prioritize speed
+          return b.speed - a.speed
+        }
+        return a.distance - b.distance
+      })
+      .slice(0, 3) // Top 3 closest signals (ETHGlobal takes 1st spot)
+
+    const formattedSignals = signalsWithDistance.map((signal) => ({
+      ssid: signal.ssid,
+      speed: signal.speed,
+      distance: signal.distance,
+      verifications: signal.verified,
+      isETHGlobal: false,
+    }))
+
+    // ETHGlobal always first, then other signals
+    return [ethGlobalWithDistance, ...formattedSignals]
+  }, [coordinates, measurements])
+
+  if (topSignals.length === 0) {
+    return (
+      <div className="fixed left-6 top-24 z-30 w-[320px] animate-fade-in rounded-2xl bg-glass p-6 backdrop-blur-xl border border-signal-green/20">
+        <div className="mb-4 flex items-center gap-2">
+          <Trophy className="h-5 w-5 text-signal-green" />
+          <h3 className="font-space-grotesk text-lg font-bold text-foreground">Top Signals Nearby</h3>
+        </div>
+        <div className="text-sm text-foreground/60 text-center py-4">
+          No signals found nearby
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="fixed left-6 top-24 z-30 w-[320px] animate-fade-in rounded-2xl bg-glass p-6 backdrop-blur-xl">
+    <div className="fixed left-6 top-24 z-30 w-[320px] animate-fade-in rounded-2xl bg-glass p-6 backdrop-blur-xl border border-signal-green/20">
       <div className="mb-4 flex items-center gap-2">
-        <Trophy className="h-5 w-5 text-warning-amber" />
+        <Trophy className="h-5 w-5 text-signal-green" />
         <h3 className="font-space-grotesk text-lg font-bold text-foreground">Top Signals Nearby</h3>
       </div>
 
       <div className="space-y-3">
         {topSignals.map((signal, idx) => (
-          <div key={idx} className="group cursor-pointer rounded-lg bg-void/20 p-3 transition-all hover:bg-void/40">
+          <div 
+            key={idx} 
+            className={`group cursor-pointer rounded-lg p-3 transition-all hover:bg-void/40 border ${
+              signal.isETHGlobal 
+                ? 'bg-signal-green/10 border-signal-green/30 shadow-[0_0_15px_rgba(52,211,153,0.3)]' 
+                : 'bg-void/20 border-signal-green/10'
+            }`}
+          >
             <div className="mb-1 flex items-start justify-between">
-              <div className="font-jetbrains text-sm font-semibold text-foreground">{signal.ssid}</div>
+              <div className={`font-jetbrains text-sm font-semibold ${
+                signal.isETHGlobal ? 'text-signal-green' : 'text-foreground'
+              }`}>
+                {signal.ssid}
+                {signal.isETHGlobal && (
+                  <span className="ml-2 text-xs text-signal-green/80">⭐ Featured</span>
+                )}
+              </div>
               <div className="flex items-center gap-1 text-xs text-signal-green">
                 <TrendingUp className="h-3 w-3" />
                 {signal.speed}
               </div>
             </div>
             <div className="flex items-center justify-between text-xs text-foreground/60">
-              <span>{signal.location}</span>
-              <span>{signal.verifications} verifications</span>
+              <span>{signal.distance < 1 ? `${Math.round(signal.distance * 1000)}m away` : `${signal.distance.toFixed(1)}km away`}</span>
+              <span>{signal.verifications} {signal.verifications === 1 ? 'verification' : 'verifications'}</span>
             </div>
           </div>
         ))}

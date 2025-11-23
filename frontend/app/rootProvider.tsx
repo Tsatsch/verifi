@@ -27,14 +27,14 @@ if (typeof window !== 'undefined') {
 const theme: Partial<Theme> = {
   "colors-bg-default": "#0a0b0d",
   "colors-bg-alternate": "#1a1b1e",
-  "colors-bg-primary": "#24d3ef", // Cyan for Wifi-Radar branding
+  "colors-bg-primary": "#34d399", // Signal green for Wifi-Radar branding
   "colors-bg-secondary": "#1a1b1e",
   "colors-fg-default": "#ffffff",
   "colors-fg-muted": "#8a919e",
-  "colors-fg-primary": "#24d3ef", // Cyan for primary text/buttons
+  "colors-fg-primary": "#34d399", // Signal green for primary text/buttons
   "colors-fg-onPrimary": "#0a0b0d",
   "colors-fg-onSecondary": "#ffffff",
-  "colors-fg-positive": "#27ad75",
+  "colors-fg-positive": "#34d399",
   "colors-fg-negative": "#f0616d",
   "colors-fg-warning": "#ed702f",
   "colors-line-default": "#252629",
