@@ -1,4 +1,5 @@
 import { AbstractSigner, Provider, TransactionRequest, TypedDataDomain, TypedDataField } from "ethers";
+import { isPaymasterConfigured, sendSponsoredTransactionViaProvider } from "./paymaster";
 
 /**
  * Recursively converts BigInt values to strings in an object
@@ -45,6 +46,7 @@ export class CDPSigner extends AbstractSigner {
   private _sendTransactionFn: (options: any) => Promise<any>;
   private _signTransactionFn: (options: any) => Promise<any>;
   private _address: string;
+  private _walletProvider?: any; // Optional wallet provider for paymaster support
 
   constructor(
     address: string,
@@ -52,7 +54,8 @@ export class CDPSigner extends AbstractSigner {
     signTypedDataFn: (options: any) => Promise<any>,
     sendTransactionFn: (options: any) => Promise<any>,
     signTransactionFn: (options: any) => Promise<any>,
-    provider?: Provider
+    provider?: Provider,
+    walletProvider?: any // Optional wallet provider for paymaster support
   ) {
     super(provider);
     this._address = address;
@@ -60,6 +63,7 @@ export class CDPSigner extends AbstractSigner {
     this._signTypedDataFn = signTypedDataFn;
     this._sendTransactionFn = sendTransactionFn;
     this._signTransactionFn = signTransactionFn;
+    this._walletProvider = walletProvider;
   }
 
   async getAddress(): Promise<string> {
@@ -176,7 +180,60 @@ export class CDPSigner extends AbstractSigner {
       to: transaction.to,
       value: transaction.value?.toString(),
       chainId: transaction.chainId,
+      paymasterConfigured: isPaymasterConfigured(),
+      hasWalletProvider: !!this._walletProvider,
     });
+    
+    // Try paymaster first if configured and wallet provider is available
+    if (isPaymasterConfigured() && this._walletProvider) {
+      try {
+        console.log("🚀 Attempting paymaster-sponsored transaction...");
+        const txHash = await sendSponsoredTransactionViaProvider(
+          this._walletProvider,
+          this._address,
+          {
+            to: transaction.to,
+            value: transaction.value,
+            data: transaction.data,
+            gasLimit: transaction.gasLimit,
+            maxFeePerGas: transaction.maxFeePerGas,
+            maxPriorityFeePerGas: transaction.maxPriorityFeePerGas,
+          }
+        );
+        
+        console.log("✅ Paymaster transaction successful:", txHash);
+        
+        // Return a transaction response-like object
+        return {
+          hash: txHash,
+          from: this._address,
+          to: transaction.to,
+          value: transaction.value,
+          data: transaction.data,
+          chainId: transaction.chainId,
+          wait: async (confirmations?: number) => {
+            // CDP handles confirmation internally
+            return {
+              transactionHash: txHash,
+              from: this._address,
+              to: transaction.to,
+              status: 1,
+            };
+          },
+        };
+      } catch (paymasterError: any) {
+        // Check if user cancelled
+        if (paymasterError?.message === 'USER_CANCELLED') {
+          throw paymasterError;
+        }
+        
+        // Log error but fall through to regular transaction
+        console.warn("⚠️ Paymaster transaction failed, falling back to regular transaction:", paymasterError);
+      }
+    }
+    
+    // Fall back to regular transaction (or use if paymaster not configured)
+    console.log("📤 Using regular CDP transaction...");
     
     // Serialize the transaction to handle BigInt values
     const serializedTransaction = serializeBigInt({
@@ -228,7 +285,8 @@ export class CDPSigner extends AbstractSigner {
       this._signTypedDataFn,
       this._sendTransactionFn,
       this._signTransactionFn,
-      provider
+      provider,
+      this._walletProvider
     );
   }
 }

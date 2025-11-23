@@ -8,6 +8,7 @@ import {
   useSignEvmTransaction,
 } from "@coinbase/cdp-hooks";
 import { CDPSigner } from "@/lib/cdp-signer";
+import { useCDPProvider } from "./use-cdp-provider";
 
 /**
  * Hook to get an ethers.js signer from the current Coinbase CDP wallet.
@@ -24,6 +25,7 @@ export const useCDPSigner = () => {
   const { signEvmTypedData } = useSignEvmTypedData();
   const { sendEvmTransaction } = useSendEvmTransaction();
   const { signEvmTransaction } = useSignEvmTransaction();
+  const walletProvider = useCDPProvider();
 
   return useMemo(() => {
     if (!evmAddress) {
@@ -38,6 +40,7 @@ export const useCDPSigner = () => {
       hasSignTypedData: !!signEvmTypedData,
       hasSendTransaction: !!sendEvmTransaction,
       hasSignTransaction: !!signEvmTransaction,
+      hasWalletProvider: !!walletProvider,
     });
     
     // Create a provider for reading blockchain state
@@ -50,12 +53,13 @@ export const useCDPSigner = () => {
       signEvmTypedData,
       sendEvmTransaction,
       signEvmTransaction,
-      provider
+      provider,
+      walletProvider // Pass wallet provider for paymaster support
     );
     
     console.log("🎉 CDP native signer ready (bypasses window.ethereum - works with any browser wallet!)");
     
     return signer;
-  }, [evmAddress, signEvmMessage, signEvmTypedData, sendEvmTransaction, signEvmTransaction]);
+  }, [evmAddress, signEvmMessage, signEvmTypedData, sendEvmTransaction, signEvmTransaction, walletProvider]);
 };
 
